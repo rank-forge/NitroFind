@@ -40,6 +40,23 @@ class SpinnerWidget(QWidget):
         self._angle = (self._angle + 30) % 360
         self.update()
 
+    def hideEvent(self, event):
+        """Stop the timer when the widget is hidden (WR-02).
+
+        Prevents 10 Hz event-loop wakeups while the spinner is not visible
+        (e.g., during the error state while the user reads the message).
+        """
+        self._timer.stop()
+        super().hideEvent(event)
+
+    def showEvent(self, event):
+        """Restart the timer when the widget becomes visible again (WR-02).
+
+        Called by reset_to_loading() → spinner.show() during retry cycles.
+        """
+        self._timer.start(100)
+        super().showEvent(event)
+
     def paintEvent(self, event):
         """Draw the arc at the current rotation angle."""
         painter = QPainter(self)

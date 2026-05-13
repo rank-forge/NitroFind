@@ -17,6 +17,17 @@ import shutil
 import sys
 
 
+def _es_binary_path(es_home: str) -> str:
+    """Return the platform-correct ES binary path (CR-01).
+
+    On Windows the Elasticsearch binary is elasticsearch.bat;
+    on POSIX it is elasticsearch (no extension).
+    """
+    if sys.platform == "win32":
+        return os.path.join(es_home, "bin", "elasticsearch.bat")
+    return os.path.join(es_home, "bin", "elasticsearch")
+
+
 def main() -> None:
     # D-01: Locate ES via ES_HOME environment variable
     # D-02: Exit with clear error message if ES_HOME is not set
@@ -33,7 +44,7 @@ def main() -> None:
 
     # Security Domain V5 / T-01-01: confirm the ES binary exists before writing
     # Prevents arbitrary binary path injection
-    es_bin = os.path.join(es_home, "bin", "elasticsearch")
+    es_bin = _es_binary_path(es_home)  # CR-01: platform-correct binary path
     if not os.path.isfile(es_bin):
         print(
             f"Elasticsearch binary not found at: {es_bin}\n"
@@ -50,6 +61,12 @@ def main() -> None:
     # Copy elasticsearch.yml → $ES_HOME/config/elasticsearch.yml
     src_yml = os.path.join(config_src, "elasticsearch.yml")
     dst_yml = os.path.join(es_config_dir, "elasticsearch.yml")
+    # WR-04: back up existing elasticsearch.yml before overwriting to avoid
+    # silently destroying a user's custom configuration
+    if os.path.exists(dst_yml):
+        backup = dst_yml + ".bak"
+        shutil.copy(dst_yml, backup)
+        print(f"Warning: existing elasticsearch.yml backed up to {backup}")
     shutil.copy(src_yml, dst_yml)
     print(f"Copied elasticsearch.yml → {dst_yml}")
 

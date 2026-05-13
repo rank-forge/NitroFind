@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import QApplication
 from elasticsearch import Elasticsearch
 from qt_material import apply_stylesheet
 
-from nitrofind.es_manager import ESHealthWorker, validate_es_home
+from nitrofind.es_manager import ES_URL, ESHealthWorker, validate_es_home
 from nitrofind.es_schema import ensure_index
 from nitrofind.ui.loading_window import LoadingWindow
 from nitrofind.ui.main_window import StubMainWindow
@@ -99,8 +99,18 @@ def main() -> None:
         the SCHEMA-01..04 fields in a live index, then swaps LoadingWindow
         for StubMainWindow.
         """
-        client = Elasticsearch("http://localhost:9200")
-        ensure_index(client)
+        try:
+            client = Elasticsearch(ES_URL)  # WR-01: use shared ES_URL constant
+            ensure_index(client)
+        except Exception as exc:
+            # CR-02: guard against TransportError, ConnectionError, mapping conflicts, etc.
+            # Qt swallows unhandled exceptions from signal handlers — explicit handling
+            # required so show_error() is reached and the UI does not freeze.
+            logger.warning("ensure_index failed: %s", exc)
+            loading_window.show_error(
+                "Could not connect to Elasticsearch. Check that ES_HOME is set correctly and try again."
+            )
+            return
 
         main_window = StubMainWindow()
         main_window.show()
