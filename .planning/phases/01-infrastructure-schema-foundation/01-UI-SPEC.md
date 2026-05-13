@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: infrastructure-schema-foundation
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-12
+reviewed_at: 2026-05-12
 ---
 
 # Phase 1 — UI Design Contract
