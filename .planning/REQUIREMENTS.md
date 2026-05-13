@@ -7,7 +7,7 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Developer can run the app from a Python venv with a pinned lockfile (reproducible environment across machines)
+- [x] **INFRA-01**: Developer can run the app from a Python venv with a pinned lockfile (reproducible environment across machines)
 - [ ] **INFRA-02**: App starts a local Elasticsearch 8.18 node as a subprocess on launch (localhost:9200, TLS disabled, security disabled)
 - [ ] **INFRA-03**: App terminates the Elasticsearch process cleanly when the user quits
 - [ ] **INFRA-04**: App shows a loading state while Elasticsearch warms up and becomes healthy (cold start takes 5–15 seconds)
@@ -91,7 +91,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Pending |
 | INFRA-03 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
