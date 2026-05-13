@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. The UI shows a loading/splash state while ES warms up and transitions to the main window only after the cluster health check passes
 **Plans**: 4 plans
 - [x] 01-01-PLAN.md — Python lockfile + ES config files + setup_es.py + pytest scaffold (INFRA-01)
-- [ ] 01-02-PLAN.md — ESHealthWorker + shutdown_es + car_articles schema + unit/integration tests (INFRA-02/03/04, SCHEMA-01..04)
-- [ ] 01-03-PLAN.md — SpinnerWidget + LoadingWindow (loading/error states) + StubMainWindow + state-machine tests (INFRA-04 UI side)
+- [x] 01-02-PLAN.md — ESHealthWorker + shutdown_es + car_articles schema + unit/integration tests (INFRA-02/03/04, SCHEMA-01..04)
+- [x] 01-03-PLAN.md — SpinnerWidget + LoadingWindow (loading/error states) + StubMainWindow + state-machine tests (INFRA-04 UI side)
 - [ ] 01-04-PLAN.md — main.py wiring + end-to-end manual verification checkpoint (INFRA-02/03/04 end-to-end)
 
 ### Phase 2: Data Pipeline (Scraper + Indexer)
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Schema Foundation | 1/4 | In Progress|  |
+| 1. Infrastructure & Schema Foundation | 3/4 | In Progress|  |
 | 2. Data Pipeline (Scraper + Indexer) | 0/TBD | Not started | - |
 | 3. Search Logic & Relevance Scoring | 0/TBD | Not started | - |
 | 4. Desktop UI | 0/TBD | Not started | - |
