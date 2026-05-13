@@ -12,7 +12,7 @@ NitroFind is built in five sequential phases, each unblocking the next. Infrastr
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Infrastructure & Schema Foundation** - Elasticsearch node running, index schema locked, venv reproducible
+- [x] **Phase 1: Infrastructure & Schema Foundation** - Elasticsearch node running, index schema locked, venv reproducible
 - [ ] **Phase 2: Data Pipeline (Scraper + Indexer)** - Wikipedia and blog articles scraped, cleaned, deduplicated, and indexed under 2 GB
 - [ ] **Phase 3: Search Logic & Relevance Scoring** - function_score query engine built and tuned against real data
 - [ ] **Phase 4: Desktop UI** - PyQt6 application with instant search, filters, detail view, and keyboard navigation
@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 01-01-PLAN.md — Python lockfile + ES config files + setup_es.py + pytest scaffold (INFRA-01)
 - [x] 01-02-PLAN.md — ESHealthWorker + shutdown_es + car_articles schema + unit/integration tests (INFRA-02/03/04, SCHEMA-01..04)
 - [x] 01-03-PLAN.md — SpinnerWidget + LoadingWindow (loading/error states) + StubMainWindow + state-machine tests (INFRA-04 UI side)
-- [ ] 01-04-PLAN.md — main.py wiring + end-to-end manual verification checkpoint (INFRA-02/03/04 end-to-end)
+- [x] 01-04-PLAN.md — main.py wiring + end-to-end manual verification checkpoint (INFRA-02/03/04 end-to-end)
 
 ### Phase 2: Data Pipeline (Scraper + Indexer)
 **Goal**: A one-shot CLI scraper populates the car_articles index with clean, deduplicated automotive articles from Wikipedia and at least one automotive blog, staying under 2 GB of ES storage.
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Schema Foundation | 3/4 | In Progress|  |
+| 1. Infrastructure & Schema Foundation | 4/4 | Complete | 2026-05-13 |
 | 2. Data Pipeline (Scraper + Indexer) | 0/TBD | Not started | - |
 | 3. Search Logic & Relevance Scoring | 0/TBD | Not started | - |
 | 4. Desktop UI | 0/TBD | Not started | - |

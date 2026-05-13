@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Wave 2 complete — 3/4 plans done, Wave 3 (Plan 01-04 human checkpoint) next
-last_updated: "2026-05-13T12:56:43.108Z"
-last_activity: 2026-05-13 -- Wave 2 complete (ES backend + UI components merged, 15 tests green)
+stopped_at: Phase 1 execution complete — all 4 plans done, awaiting verification
+last_updated: "2026-05-13T13:30:00.000Z"
+last_activity: 2026-05-13 -- Phase 1 complete (main.py wired, checkpoint approved, all 8 requirements met)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 1 of 5 (Infrastructure & Schema Foundation)
-Plan: 3 of 4 in current phase (Plans 01-01, 01-02, 01-03 complete)
-Status: Executing — Wave 3 pending (human checkpoint)
-Last activity: 2026-05-13 -- Wave 2 complete (ES backend + UI components merged, 15 tests green)
+Plan: 4 of 4 in current phase (Plans 01-01, 01-02, 01-03, 01-04 complete)
+Status: Phase 1 complete — awaiting /gsd-verify-work
+Last activity: 2026-05-13 -- Phase 1 complete (main.py wired, checkpoint approved, all 8 requirements met)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - Roadmap: Horizontal-layer phase structure chosen — each phase is a complete technical subsystem (Infrastructure → Pipeline → Search → UI → Packaging)
 - Phase 1: ES 8.18 with xpack.security.enabled: false, xpack.security.http.ssl.enabled: false, network.host: 127.0.0.1, JVM heap pinned to -Xms512m -Xmx512m
 - Phase 1: Index mapping with dynamic: false and flattened type for infobox data to prevent mapping explosion
+- Phase 1 Plan 04: State dict pattern (state = {"worker": None}) used in main.py so closures can replace the active ESHealthWorker on Retry without nonlocal
+- Phase 1 Plan 04: ES cold-start deadline extended from 60s (plan spec) to 180s after observing ~120s actual cold-start time on target machine
 - Phase 3: function_score uses Gaussian recency decay + log(word_count) modifier + has_infobox boost; score_mode: sum, boost_mode: multiply
 
 ### Pending Todos
@@ -83,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-13T12:56:43.047Z
-Stopped at: Wave 2 complete — 3/4 plans done, Wave 3 (Plan 01-04 human checkpoint) next
+Last session: 2026-05-13T13:30:00.000Z
+Stopped at: Phase 1 execution complete — all 4 plans done, awaiting verification
 Resume file: None
