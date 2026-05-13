@@ -15,7 +15,7 @@ Requirement coverage:
 Security mitigations:
   T-02-01 (path traversal): validate_es_home enforces isdir + isfile before exec
   T-02-02 (shell injection): Popen command is a list literal — no shell=True
-  T-02-03 (DoS/infinite loop): hard 60-second deadline via time.monotonic()
+  T-02-03 (DoS/infinite loop): hard 180-second deadline via time.monotonic()
 """
 
 import os
@@ -94,8 +94,8 @@ class ESHealthWorker(QThread):
     """QThread worker that starts Elasticsearch and polls cluster health.
 
     Emits exactly one signal per run() invocation:
-      es_ready()         — cluster reached green or yellow within 60 seconds
-      es_failed(reason)  — process exited unexpectedly or 60-second deadline reached
+      es_ready()         — cluster reached green or yellow within 180 seconds
+      es_failed(reason)  — process exited unexpectedly or 180-second deadline reached
 
     Usage (main.py — Pattern 1, Pitfall 4):
         worker = ESHealthWorker(es_home)
@@ -128,7 +128,7 @@ class ESHealthWorker(QThread):
         self.process = self._start_process()
         client = Elasticsearch("http://localhost:9200", request_timeout=2)
 
-        deadline = time.monotonic() + 60  # D-04: 60-second total timeout
+        deadline = time.monotonic() + 180  # D-04: 180-second total timeout (ES cold start can take ~2min)
         while time.monotonic() < deadline:
             # T-02-03: check process death first — exit loop immediately
             if self.process.poll() is not None:
@@ -146,7 +146,7 @@ class ESHealthWorker(QThread):
             time.sleep(2)  # D-04: 2-second polling interval
 
         # Deadline reached without a healthy cluster
-        self.es_failed.emit("Elasticsearch did not become healthy within 60 seconds.")
+        self.es_failed.emit("Elasticsearch did not become healthy within 180 seconds.")
 
     def shutdown_es(self) -> None:
         """Gracefully terminate ES — delegates to module-level shutdown_es().

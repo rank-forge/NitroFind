@@ -1,5 +1,5 @@
 """
-Integration test for INFRA-02: live Elasticsearch reaches healthy within 60s.
+Integration test for INFRA-02: live Elasticsearch reaches healthy within 180s.
 
 Marked @pytest.mark.integration — excluded from quick-run:
     pytest -m "not integration"
@@ -19,12 +19,12 @@ from nitrofind.es_manager import ESHealthWorker
 
 @pytest.mark.integration
 def test_real_es_reaches_healthy():
-    """Live ES subprocess started by ESHealthWorker reaches green/yellow within 90s.
+    """Live ES subprocess started by ESHealthWorker reaches green/yellow within 210s.
 
-    Verifies INFRA-02: ES starts, health becomes green/yellow within 60s deadline.
+    Verifies INFRA-02: ES starts, health becomes green/yellow within 180s deadline.
     Verifies INFRA-03: shutdown_es() called in finally block — no orphan JVM.
 
-    Upper bound is 90s (60s health deadline + 30s margin) to accommodate slow cold starts
+    Upper bound is 210s (180s health deadline + 30s margin) to accommodate slow cold starts
     on resource-constrained machines.
     """
     if not os.environ.get("ES_HOME"):
