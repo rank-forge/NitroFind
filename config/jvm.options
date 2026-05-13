@@ -1,0 +1,5 @@
+# Source: https://www.elastic.co/guide/en/elasticsearch/reference/8.19/advanced-configuration.html
+# Place in: $ES_HOME/config/jvm.options.d/nitrofind.options via scripts/setup_es.py
+# L-01: JVM heap pinned at 512 MB for desktop environment (2 GB index cap, single node)
+-Xms512m
+-Xmx512m
