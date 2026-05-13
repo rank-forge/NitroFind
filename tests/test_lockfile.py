@@ -11,12 +11,24 @@ Requirement: INFRA-01
 import pathlib
 import re
 
+import pytest
+
 
 REQUIREMENTS_TXT = pathlib.Path(__file__).parent.parent / "requirements.txt"
 
 
 def _read_requirements() -> list[str]:
-    """Read all lines from requirements.txt."""
+    """Read all lines from requirements.txt.
+
+    CR-04: guard against missing file — raises pytest.fail with an actionable
+    message instead of the confusing FileNotFoundError that would otherwise bubble
+    up from read_text() when requirements.txt has not yet been generated.
+    """
+    if not REQUIREMENTS_TXT.exists():
+        pytest.fail(
+            f"requirements.txt not found at {REQUIREMENTS_TXT}. "
+            "Run: pip-compile --generate-hashes requirements.in"
+        )
     return REQUIREMENTS_TXT.read_text(encoding="utf-8").splitlines()
 
 

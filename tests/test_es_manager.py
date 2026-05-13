@@ -27,11 +27,14 @@ from nitrofind.es_manager import ESHealthWorker, shutdown_es, validate_es_home
 # INFRA-02: ES_HOME validation
 # ---------------------------------------------------------------------------
 
-def test_missing_es_home(monkeypatch):
+def test_missing_es_home():
     """validate_es_home(None) and validate_es_home('') both raise ValueError
-    with a message starting with 'ES_HOME is not set'."""
-    monkeypatch.delenv("ES_HOME", raising=False)
+    with a message starting with 'ES_HOME is not set'.
 
+    WR-05: monkeypatch.delenv removed — validate_es_home() receives es_home as
+    a direct argument and does not read from os.environ internally. The env
+    manipulation was dead code that implied incorrect test semantics.
+    """
     with pytest.raises(ValueError, match="ES_HOME is not set"):
         validate_es_home(None)
 

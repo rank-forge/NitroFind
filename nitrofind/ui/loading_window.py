@@ -61,8 +61,10 @@ class LoadingWindow(QWidget):
         self.setFixedSize(360, 240)
 
         # --- Center on primary screen ---
-        screen = QApplication.primaryScreen().geometry()
-        self.move(screen.center() - self.rect().center())
+        # IN-02: guard against primaryScreen() returning None in headless/CI environments
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            self.move(screen.geometry().center() - self.rect().center())
 
         # --- Build child widgets ---
         self._title_label = QLabel("NitroFind")

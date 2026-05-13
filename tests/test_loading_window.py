@@ -30,7 +30,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.skipif(not PYQT6_AVAILABLE, reason="PyQt6 not installed")
 def test_initial_state_is_loading(qtbot):
     """
     INFRA-04: LoadingWindow construction yields State 1 (loading).
@@ -52,7 +51,6 @@ def test_initial_state_is_loading(qtbot):
     )
 
 
-@pytest.mark.skipif(not PYQT6_AVAILABLE, reason="PyQt6 not installed")
 def test_show_error_transitions_to_error_state(qtbot):
     """
     INFRA-04: show_error(reason) transitions LoadingWindow to State 2 (error, D-07).
@@ -76,7 +74,6 @@ def test_show_error_transitions_to_error_state(qtbot):
     )
 
 
-@pytest.mark.skipif(not PYQT6_AVAILABLE, reason="PyQt6 not installed")
 def test_retry_button_emits_signal(qtbot):
     """
     INFRA-04: Clicking Retry emits the retry_clicked signal.
@@ -98,7 +95,6 @@ def test_retry_button_emits_signal(qtbot):
         qtbot.mouseClick(window.retry_button, Qt.MouseButton.LeftButton)
 
 
-@pytest.mark.skipif(not PYQT6_AVAILABLE, reason="PyQt6 not installed")
 def test_reset_to_loading_restores_state(qtbot):
     """
     INFRA-04: reset_to_loading() restores State 1 from State 2.

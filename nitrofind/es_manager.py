@@ -29,8 +29,26 @@ from elasticsearch import Elasticsearch
 
 
 # ---------------------------------------------------------------------------
+# Module-level constant — single source of truth for ES URL (WR-01)
+# ---------------------------------------------------------------------------
+
+ES_URL = "http://localhost:9200"
+
+
+# ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
+def _es_binary_path(es_home: str) -> str:
+    """Return the platform-correct ES binary path (CR-01).
+
+    On Windows the Elasticsearch binary is elasticsearch.bat;
+    on POSIX it is elasticsearch (no extension).
+    """
+    if sys.platform == "win32":
+        return os.path.join(es_home, "bin", "elasticsearch.bat")
+    return os.path.join(es_home, "bin", "elasticsearch")
+
 
 def validate_es_home(es_home: str | None) -> str:
     """Validate that es_home is a real directory containing an ES binary.
@@ -47,7 +65,7 @@ def validate_es_home(es_home: str | None) -> str:
     if not os.path.isdir(es_home):
         raise ValueError(f"ES_HOME is not a directory: {es_home}")
 
-    es_bin = os.path.join(es_home, "bin", "elasticsearch")
+    es_bin = _es_binary_path(es_home)
     if not os.path.isfile(es_bin):
         raise ValueError(f"Elasticsearch binary not found at: {es_bin}")
 
@@ -111,6 +129,7 @@ class ESHealthWorker(QThread):
         super().__init__()
         self._es_home = es_home
         self.process: subprocess.Popen | None = None
+        self._stop_requested: bool = False  # WR-03: allows shutdown to interrupt polling loop
 
     # ------------------------------------------------------------------
     # Public API
@@ -126,10 +145,11 @@ class ESHealthWorker(QThread):
         Emits exactly one signal: es_ready or es_failed.
         """
         self.process = self._start_process()
-        client = Elasticsearch("http://localhost:9200", request_timeout=2)
+        client = Elasticsearch(ES_URL, request_timeout=2)
 
         deadline = time.monotonic() + 180  # D-04: 180-second total timeout (ES cold start can take ~2min)
-        while time.monotonic() < deadline:
+        last_exc: Exception | None = None  # CR-03: retain last poll exception for deadline message
+        while time.monotonic() < deadline and not self._stop_requested:  # WR-03: honour stop flag
             # T-02-03: check process death first — exit loop immediately
             if self.process.poll() is not None:
                 self.es_failed.emit("Elasticsearch process exited unexpectedly.")
@@ -140,19 +160,25 @@ class ESHealthWorker(QThread):
                 if resp["status"] in ("green", "yellow"):  # D-04: accept green or yellow
                     self.es_ready.emit()
                     return
-            except Exception:
-                pass  # ES not yet accepting connections — continue polling
+            except Exception as exc:
+                last_exc = exc  # CR-03: track for deadline message; not swallowed silently
 
             time.sleep(2)  # D-04: 2-second polling interval
 
-        # Deadline reached without a healthy cluster
-        self.es_failed.emit("Elasticsearch did not become healthy within 180 seconds.")
+        # Deadline reached (or stop requested) without a healthy cluster
+        exc_info = f" Last error: {type(last_exc).__name__}" if last_exc else ""
+        self.es_failed.emit(
+            f"Elasticsearch did not become healthy within 180 seconds.{exc_info}"
+        )
 
     def shutdown_es(self) -> None:
         """Gracefully terminate ES — delegates to module-level shutdown_es().
 
+        Sets _stop_requested so the polling loop exits at the next iteration
+        without sleeping a full 2-second tick (WR-03).
         Idempotent and safe to call from the main thread via aboutToQuit signal.
         """
+        self._stop_requested = True  # WR-03: interrupt polling loop before wait()
         if self.process is None:
             return
         shutdown_es(self.process)
@@ -164,12 +190,14 @@ class ESHealthWorker(QThread):
     def _start_process(self) -> subprocess.Popen:
         """Start the ES JVM subprocess.
 
-        Security — T-02-02: command is a list literal; shell=True is never used.
+        Security — T-02-02: command is a list literal; shell=True is only used
+        on Windows where it is required to execute .bat files (CR-01).
         Cross-platform — Pitfall 1: CREATE_NEW_PROCESS_GROUP on win32 required so
         shutdown_es() can send CTRL_BREAK_EVENT for graceful Windows shutdown.
         """
-        es_bin = os.path.join(self._es_home, "bin", "elasticsearch")
+        es_bin = _es_binary_path(self._es_home)  # CR-01: platform-correct binary path
         kwargs: dict = {}
         if sys.platform == "win32":
             kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+            kwargs["shell"] = True  # CR-01: required to execute .bat files on Windows
         return subprocess.Popen([es_bin], **kwargs)
