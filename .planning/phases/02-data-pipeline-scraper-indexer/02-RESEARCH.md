@@ -857,22 +857,25 @@ root_categories:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which blog target is accessible from the developer's network?**
    - What we know: Hagerty and Car and Driver both returned non-200 on automated WebFetch; robots.txt confirms article scraping is not broadly blocked
    - What's unclear: Whether a browser-like User-Agent alone is sufficient, or TLS fingerprinting makes all four targets inaccessible without a headless browser
    - Recommendation: Wave 1 should include a manual inspection task — developer opens browser devtools, identifies article container selector, confirms accessibility with `requests` + User-Agent before building the parser
+   - RESOLVED: Plan 02-04 Task 1 is a human-verify checkpoint that requires the developer to verify the target before implementation proceeds. Target selection is deferred to execution time per D-autonomy constraint. If all four targets fail manual inspection, the phase proceeds in Wikipedia-only mode (acceptable per phase success criterion — "at least one" blog OR documented Wikipedia-only completion).
 
 2. **Are there enough infobox-equipped Wikipedia articles at depth=2 to reach 1,000+?**
    - What we know: `Category:Automobiles by manufacturer` and `Category:Car models` are large hierarchies with thousands of articles
    - What's unclear: The fraction of those articles that have infoboxes (estimate: 70-80% of car model articles have infoboxes, but unverified)
    - Recommendation: Early in implementation, run a sampling pass against 100 pages to measure infobox hit rate; adjust root categories if rate is below expectation
+   - RESOLVED: Accepted as Assumption A3 (mitigated). Root categories and `max_depth` are configurable in `config/scraper.yaml` (Plan 02-01) — if depth=2 yields fewer than 1,000 articles, the developer adjusts `root_categories` or increases `max_depth` before re-running. No code change required; the YAML-driven design from D-03 absorbs this risk.
 
 3. **Should the scraper normalize infobox field names for `manufacturer`, `production_start`, `production_end`?**
    - What we know: Wikipedia infobox field names vary across articles (`manufacturer` vs `Manufacturer` vs `produced by`); the `specs` field (flattened) stores raw key-value pairs
    - What's unclear: How reliable is the specific key name extraction for the SCHEMA-04 facet fields
    - Recommendation: Use `infobox.get("manufacturer") or infobox.get("Manufacturer") or ""` fallback chains; accept incomplete facet data gracefully rather than blocking indexing
+   - RESOLVED: Plan 02-03 Task 1 uses multi-key fallback chains (e.g., `infobox.get("manufacturer") or infobox.get("Manufacturer") or ""` and `infobox.get("production") or infobox.get("years") or infobox.get("model years")`) rather than upfront normalization, keeping infobox data as-is in the `specs` flattened field and resolving synonyms at query time. Incomplete facet data is accepted gracefully — empty strings, not blocking indexing.
 
 ---
 
