@@ -251,12 +251,16 @@ class WikipediaScraper:
             )
             return None
 
-        # D-02 + Pitfall 2: falsy check handles both {} (empty dict) and None
-        if not page.infobox:
+        # D-02 + Pitfall 2: falsy check handles both {} (empty dict) and None.
+        # mediawikiapi raises AttributeError on some pages when _infobox is unset.
+        try:
+            infobox = page.infobox
+        except AttributeError:
+            return None
+        if not infobox:
             return None
 
         body_text = page.content  # plain text — mediawikiapi strips wiki markup (L-05)
-        infobox = page.infobox
 
         # Multi-key fallback chain for production year (RESEARCH.md Open Question 3)
         raw_production = (

@@ -263,9 +263,9 @@ def test_real_wikipedia_page_fetch():
     state = SQLiteStateManager(":memory:")
     scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=state)
 
-    result = scraper._fetch_and_build_doc(pageid=57328)  # Ferrari 308 pageid
+    result = scraper._fetch_and_build_doc(pageid=1178093)  # Ferrari 308 GTB/GTS
 
-    assert result is not None, "Expected a doc dict for Ferrari 308, got None"
+    assert result is not None, "Expected a doc dict for Ferrari 308 GTB/GTS, got None"
     assert result["article_id"].isdigit(), \
         f"Expected article_id to be a digit string, got {result['article_id']!r}"
     state.close()
