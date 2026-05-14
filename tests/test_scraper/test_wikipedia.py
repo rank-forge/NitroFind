@@ -189,11 +189,21 @@ def test_yield_documents_skips_already_visited():
     # pageid 99 is already visited, pageid 100 is not
     mock_state.is_visited.side_effect = lambda x: x == "99"
 
+    def fake_get_members(cat_title, cmtype, return_titles=False):
+        """Return fixed page IDs for 'page' calls, empty list for 'subcat' calls.
+
+        Returning empty subcategory list prevents recursion so the test only
+        exercises yield_documents' skip-if-visited logic, not the walk.
+        """
+        if cmtype == "page":
+            return [99, 100]
+        return []  # no subcategories — prevents uncontrolled recursion
+
     with patch("nitrofind.scraper.wikipedia.MediaWikiAPI", return_value=mock_wiki), \
          patch.object(
              WikipediaScraper,
              "_get_category_members_raw",
-             return_value=[99, 100],
+             side_effect=fake_get_members,
          ):
         scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
         docs = list(scraper.yield_documents())
