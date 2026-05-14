@@ -2,7 +2,7 @@
 nitrofind.scraper.cleaner — Text cleaning and field derivation utilities.
 
 Exports:
-  make_excerpt       — truncates body text to <=300 chars at word boundary (L-06)
+  make_excerpt       — truncates body text to ≤300 chars at word boundary (L-06)
   compute_era_bucket — derives decade label from production_start year (L-07)
   parse_year         — extracts 4-digit year from infobox field strings
 
@@ -13,7 +13,7 @@ Requirement coverage:
   SCHEMA-03: enforced by make_excerpt + body passthrough
 
 Anti-patterns avoided:
-  Pitfall 7: excerpt ends at word boundary — body_text[:300].rsplit(" ", 1)[0]
+  Pitfall 7: excerpt never cuts mid-word — uses rsplit(" ", 1)[0] for word-boundary trim
 """
 
 import re
@@ -21,7 +21,13 @@ from typing import Optional
 
 
 def make_excerpt(body_text: str) -> str:
-    """Return <=300-char excerpt ending on a word boundary (L-06, Pitfall 7)."""
+    """Return ≤300-char excerpt ending on a word boundary (L-06, Pitfall 7).
+
+    When len(body_text) <= 300, returns body_text unchanged.
+    Otherwise truncates at 300 chars and trims to the last word boundary
+    using rsplit(" ", 1)[0]. Handles empty string (returns "").
+    When no space exists within the first 300 chars, returns body_text[:300].
+    """
     if len(body_text) <= 300:
         return body_text
     return body_text[:300].rsplit(" ", 1)[0]
@@ -30,7 +36,14 @@ def make_excerpt(body_text: str) -> str:
 def compute_era_bucket(production_start: Optional[int]) -> str:
     """Derive decade label from production year (L-07).
 
-    Returns "Unknown" when production_start is None or 0.
+    Returns "Unknown" when production_start is None or 0 (falsy).
+    Otherwise returns f"{(production_start // 10) * 10}s" (L-07 exact formula).
+
+    Examples:
+        compute_era_bucket(1965) == "1960s"
+        compute_era_bucket(2003) == "2000s"
+        compute_era_bucket(None) == "Unknown"
+        compute_era_bucket(0)    == "Unknown"
     """
     if not production_start:
         return "Unknown"
@@ -38,9 +51,16 @@ def compute_era_bucket(production_start: Optional[int]) -> str:
 
 
 def parse_year(raw: str) -> Optional[int]:
-    """Extract first 4-digit year from an infobox field value string.
+    """Extract first 4-digit year (1900-2099) from an infobox field value string.
 
-    Returns None if no 4-digit sequence in range 1900-2099 is found.
+    Limits years to 1900-2099 per L-07 reasonable car-era range.
+    Returns None if no matching 4-digit sequence is found, or if raw is empty/None.
+
+    Examples:
+        parse_year("1965 to 1972")      == 1965
+        parse_year("manufactured in 1999") == 1999
+        parse_year("")                  is None
+        parse_year("no year here")      is None
     """
     if not raw:
         return None
