@@ -47,8 +47,13 @@ def test_mark_visited_idempotent():
     state.close()
 
 
-def test_visited_persists_across_close_reopen(tmp_path):
-    """D-06: visited state persists when DB is closed and reopened from same path."""
+def test_visited_persists_across_close_reopen(tmp_path, monkeypatch):
+    """D-06: visited state persists when DB is closed and reopened from same path.
+
+    Uses monkeypatch to set cwd to tmp_path so the path guard accepts the file,
+    which mirrors real usage (db_path is always inside the project directory).
+    """
+    monkeypatch.chdir(tmp_path)
     db_file = str(tmp_path / "state.db")
     state = SQLiteStateManager(db_file)
     state.mark_visited("wiki_page_456", "wikipedia")
