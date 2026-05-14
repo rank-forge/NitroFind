@@ -1,0 +1,36 @@
+# NitroFind scraper configuration
+# Source: CONTEXT.md (D-01, D-03), RESEARCH.md (Pattern 7, Wikipedia Root Category Recommendations)
+# Edit this file to change scraper behavior without modifying source code.
+
+wikipedia:
+  root_categories:
+    - "Category:Automobiles by manufacturer"
+    - "Category:Car models"
+    - "Category:Sports cars"
+    - "Category:Luxury vehicles"
+    - "Category:Cars by year of introduction"
+  max_depth: 2
+  rate_limit_seconds: 0.5  # MediaWiki etiquette — do not reduce below 0.5
+  user_agent: "NitroFind/1.0 (nullsecurity1337@gmail.com; personal offline research tool)"
+
+blogs:
+  size_halt_bytes: 1800000000  # 1.8 GB — SCRP-04; halts indexing before 2 GB cap
+  targets:
+    - name: hagerty
+      enabled: true
+      base_url: "https://www.hagerty.com/media/"
+      article_list_url: "https://www.hagerty.com/media/all-articles/"
+      article_selector: "div.article-content"   # ASSUMED — verify at implementation
+      listing_selector: "a.article-link"         # ASSUMED — verify at implementation
+    - name: caranddriver
+      enabled: false
+      base_url: "https://www.caranddriver.com/"
+      article_list_url: "https://www.caranddriver.com/"
+      article_selector: "div.article-body-content"  # ASSUMED — verify at implementation
+      listing_selector: "a.content-block"            # ASSUMED — verify at implementation
+    - name: hemmings
+      enabled: false
+      base_url: "https://www.hemmings.com/stories/"
+      article_list_url: "https://www.hemmings.com/stories/"
+      article_selector: "div.article-body"      # ASSUMED — verify at implementation
+      listing_selector: "a.story-link"           # ASSUMED — verify at implementation
