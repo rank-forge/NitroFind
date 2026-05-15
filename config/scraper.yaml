@@ -15,22 +15,26 @@ wikipedia:
 
 blogs:
   size_halt_bytes: 1800000000  # 1.8 GB — SCRP-04; halts indexing before 2 GB cap
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    Accept-Language: "en-US,en;q=0.5"
   targets:
     - name: hagerty
       enabled: true
       base_url: "https://www.hagerty.com/media/"
       article_list_url: "https://www.hagerty.com/media/all-articles/"
-      article_selector: "div.article-content"   # ASSUMED — verify at implementation
-      listing_selector: "a.article-link"         # ASSUMED — verify at implementation
+      article_selector: "div.article_body"    # VERIFIED 2026-05-14
+      listing_selector: "a.card_title"        # VERIFIED 2026-05-14
     - name: caranddriver
-      enabled: false
+      enabled: true
       base_url: "https://www.caranddriver.com/"
-      article_list_url: "https://www.caranddriver.com/"
-      article_selector: "div.article-body-content"  # ASSUMED — verify at implementation
-      listing_selector: "a.content-block"            # ASSUMED — verify at implementation
+      article_list_url: "https://www.caranddriver.com/news/"
+      article_selector: "div.article-body-content"                    # VERIFIED 2026-05-14
+      listing_selector: "a[data-vars-ga-ux-element='stack_block']"   # VERIFIED 2026-05-14
     - name: hemmings
-      enabled: false
+      enabled: true
       base_url: "https://www.hemmings.com/stories/"
       article_list_url: "https://www.hemmings.com/stories/"
-      article_selector: "div.article-body"      # ASSUMED — verify at implementation
-      listing_selector: "a.story-link"           # ASSUMED — verify at implementation
+      article_selector: "div.entry-content"      # VERIFIED 
+      listing_selector: "article.card a.card__link"           #  VERIFIED
