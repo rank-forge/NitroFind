@@ -109,3 +109,12 @@ None — scripts/scraper.py wires real implementations through to BulkIndexer. T
 ## Threat Flags
 
 No new threat surface introduced. scripts/scraper.py uses existing ES_URL (localhost loopback), existing SQLiteStateManager path traversal guard, and yaml.safe_load — all within the plan's threat model.
+
+## Task 3 — Live E2E Verification (Human-Approved)
+
+**Status:** APPROVED by developer
+**Outcome:** All SCRP-01..04 criteria met on live Elasticsearch node:
+- SCRP-01: Wikipedia scrape produced ≥ 1,000 car_articles documents
+- SCRP-02: Blog scraper indexed documents from Hagerty, Car and Driver, Hemmings
+- SCRP-03: Re-run produced 0 new documents (dedup via _id confirmed)
+- SCRP-04: Index size < 2 GB; size guard operational
