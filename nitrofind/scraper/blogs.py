@@ -242,17 +242,24 @@ class BlogScraper:
         }
 
     def _url_slug(self, url: str) -> str:
-        """Extract the last non-empty path segment as the article slug.
+        """Build a domain-scoped slug to guarantee uniqueness across blog targets (CR-03).
+
+        Incorporates the source domain so two different blogs with the same final
+        path segment produce distinct article_id values and do not overwrite each
+        other in Elasticsearch.
 
         Falls back to a 16-char SHA-1 hex digest if the path has no segments.
 
         Examples:
-            "https://www.hagerty.com/media/ferrari-history" -> "ferrari-history"
-            "https://example.com/"                          -> sha1 hash prefix
+            "https://www.hagerty.com/media/ferrari-308" -> "hagerty.com__ferrari-308"
+            "https://www.hemmings.com/stories/ferrari-308" -> "hemmings.com__ferrari-308"
+            "https://example.com/"                         -> sha1 hash prefix
         """
-        path = urlparse(url).path.rstrip("/")
+        parsed = urlparse(url)
+        domain = parsed.netloc.replace("www.", "")
+        path = parsed.path.rstrip("/")
         segments = [seg for seg in path.split("/") if seg]
         if segments:
-            return segments[-1]
+            return f"{domain}__{segments[-1]}"
         # Fallback: stable hash of the full URL
         return hashlib.sha1(url.encode()).hexdigest()[:16]

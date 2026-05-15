@@ -240,7 +240,7 @@ def test_doc_has_correct_shape():
     assert doc["has_infobox"] is False
     assert doc["era_bucket"] == "Unknown"
     assert doc["source_domain"] == "www.hagerty.com"
-    assert doc["article_id"] == "ferrari-history"
+    assert doc["article_id"] == "hagerty.com__ferrari-history"
     assert isinstance(doc["article_id"], str) and doc["article_id"]
     assert doc["url"] == "https://www.hagerty.com/media/ferrari-history"
 
