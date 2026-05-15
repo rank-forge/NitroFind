@@ -21,10 +21,10 @@
 
 ### Scraper
 
-- [ ] **SCRP-01**: Scraper fetches car articles from Wikipedia using the MediaWiki API (structured JSON, not HTML parsing)
+- [x] **SCRP-01**: Scraper fetches car articles from Wikipedia using the MediaWiki API (structured JSON, not HTML parsing)
 - [x] **SCRP-02**: Scraper fetches articles from at least one automotive blog (Car and Driver, Hagerty, Hemmings, or Road & Track) using BeautifulSoup4
-- [ ] **SCRP-03**: Scraper uses MediaWiki page ID as the Elasticsearch document `_id` to prevent duplicate articles from redirect paths
-- [ ] **SCRP-04**: Scraper stops indexing and logs a warning when the index approaches 1.8 GB (before hitting the 2 GB hard cap)
+- [x] **SCRP-03**: Scraper uses MediaWiki page ID as the Elasticsearch document `_id` to prevent duplicate articles from redirect paths
+- [x] **SCRP-04**: Scraper stops indexing and logs a warning when the index approaches 1.8 GB (before hitting the 2 GB hard cap)
 
 ### Relevance Scoring
 
@@ -99,10 +99,10 @@
 | SCHEMA-02 | Phase 1 | Pending |
 | SCHEMA-03 | Phase 1 | Pending |
 | SCHEMA-04 | Phase 1 | Pending |
-| SCRP-01 | Phase 2 | Pending |
+| SCRP-01 | Phase 2 | Complete |
 | SCRP-02 | Phase 2 | Complete |
-| SCRP-03 | Phase 2 | Pending |
-| SCRP-04 | Phase 2 | Pending |
+| SCRP-03 | Phase 2 | Complete |
+| SCRP-04 | Phase 2 | Complete |
 | RLVN-01 | Phase 3 | Pending |
 | RLVN-02 | Phase 3 | Pending |
 | RLVN-03 | Phase 3 | Pending |

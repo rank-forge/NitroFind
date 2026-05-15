@@ -13,7 +13,7 @@ NitroFind is built in five sequential phases, each unblocking the next. Infrastr
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure & Schema Foundation** - Elasticsearch node running, index schema locked, venv reproducible
-- [ ] **Phase 2: Data Pipeline (Scraper + Indexer)** - Wikipedia and blog articles scraped, cleaned, deduplicated, and indexed under 2 GB
+- [x] **Phase 2: Data Pipeline (Scraper + Indexer)** - Wikipedia and blog articles scraped, cleaned, deduplicated, and indexed under 2 GB (completed 2026-05-15)
 - [ ] **Phase 3: Search Logic & Relevance Scoring** - function_score query engine built and tuned against real data
 - [ ] **Phase 4: Desktop UI** - PyQt6 application with instant search, filters, detail view, and keyboard navigation
 - [ ] **Phase 5: Packaging & Distribution** - PyInstaller bundle + Elasticsearch directory ship as a runnable app on a clean machine
@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Schema Foundation | 4/4 | Complete | 2026-05-13 |
-| 2. Data Pipeline (Scraper + Indexer) | 4/5 | In Progress|  |
+| 2. Data Pipeline (Scraper + Indexer) | 5/5 | Complete   | 2026-05-15 |
 | 3. Search Logic & Relevance Scoring | 0/TBD | Not started | - |
 | 4. Desktop UI | 0/TBD | Not started | - |
 | 5. Packaging & Distribution | 0/TBD | Not started | - |
