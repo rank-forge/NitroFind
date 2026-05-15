@@ -95,10 +95,14 @@ def _fake_docs(n=3):
 
 def test_help_exits_zero():
     """--help exits 0 and stdout contains all four flags."""
+    project_root = str(Path(__file__).parent.parent.parent)
+    env = {**os.environ, "PYTHONPATH": project_root}
     result = subprocess.run(
         [sys.executable, "scripts/scraper.py", "--help"],
         capture_output=True,
         text=True,
+        env=env,
+        cwd=project_root,
     )
     assert result.returncode == 0
     assert "--wikipedia" in result.stdout
