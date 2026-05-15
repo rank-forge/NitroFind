@@ -158,4 +158,8 @@ class BulkIndexer:
         when replicas exist (even with replicas=0, the key path must be consistent).
         """
         stats = self._client.indices.stats(index="car_articles", metric="store")
-        return stats["indices"]["car_articles"]["primaries"]["store"]["size_in_bytes"]
+        try:
+            return stats["indices"]["car_articles"]["primaries"]["store"]["size_in_bytes"]
+        except KeyError:
+            # Index absent or stats response incomplete — treat as 0 bytes (CR-04)
+            return 0
