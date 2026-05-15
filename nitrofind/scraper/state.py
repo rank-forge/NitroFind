@@ -16,7 +16,6 @@ Security mitigations:
         No f-string SQL interpolation appears anywhere in this module.
 """
 
-import os
 import sqlite3
 from pathlib import Path
 
@@ -49,10 +48,12 @@ class SQLiteStateManager:
         """
         # T-02-05: path traversal guard — reject paths outside project cwd.
         # The ':memory:' special sqlite3 literal is exempted for tests.
+        # Use Path.is_relative_to() (Python 3.9+) to handle case-insensitive
+        # Windows paths and trailing-separator edge cases correctly (CR-02).
         if db_path != ":memory:":
             resolved = Path(db_path).resolve()
             cwd_resolved = Path.cwd().resolve()
-            if resolved != cwd_resolved and not str(resolved).startswith(str(cwd_resolved) + os.sep):
+            if not resolved.is_relative_to(cwd_resolved):
                 raise ValueError(
                     f"db_path must be inside project directory: {db_path}"
                 )
