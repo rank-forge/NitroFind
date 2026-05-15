@@ -117,10 +117,10 @@ class WikipediaScraper:
             if doc is None:
                 continue
 
-            yield doc
-
-            # Record state AFTER successful yield
+            # Record state BEFORE yield so state is durable even if the caller
+            # crashes mid-batch and never returns control to this generator (CR-01)
             self._state.mark_visited(str(pageid), "wikipedia")
+            yield doc
             yielded_count += 1
 
             if yielded_count % 50 == 0:

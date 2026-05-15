@@ -109,9 +109,10 @@ class BlogScraper:
                 if doc is None:
                     continue
 
+                # Record state BEFORE yield so state is durable if caller crashes (CR-01)
+                self._state.mark_visited(url, target["name"])
                 yield doc
                 yielded_any = True
-                self._state.mark_visited(url, target["name"])
                 time.sleep(self._rate_limit)
 
             # First successful target — stop the fallback chain
