@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Schema Foundation | 4/4 | Complete | 2026-05-13 |
-| 2. Data Pipeline (Scraper + Indexer) | 0/TBD | Not started | - |
+| 2. Data Pipeline (Scraper + Indexer) | 4/5 | In Progress|  |
 | 3. Search Logic & Relevance Scoring | 0/TBD | Not started | - |
 | 4. Desktop UI | 0/TBD | Not started | - |
 | 5. Packaging & Distribution | 0/TBD | Not started | - |
