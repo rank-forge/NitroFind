@@ -316,8 +316,9 @@ class WikipediaScraper:
             "country_of_origin": str(
                 infobox.get("origin") or infobox.get("country") or ""
             ),
-            # L-02: flattened type tolerates arbitrary infobox shape without mapping explosion
-            "specs": infobox,
+            # L-02: flatten values to strings to avoid ES mapping conflicts from
+            # nested dicts or mixed types in the raw infobox (WR-04)
+            "specs": {k: str(v) for k, v in infobox.items()},
         }
 
         return doc
