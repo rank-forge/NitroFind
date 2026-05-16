@@ -103,6 +103,7 @@ class BlogScraper:
                 "Target %r: discovered %d article URLs", target["name"], len(article_urls)
             )
 
+            target_yielded = False
             for url in article_urls:
                 # D-06: skip already-indexed URLs before fetching
                 if self._state.is_visited(url):
@@ -117,14 +118,23 @@ class BlogScraper:
                 self._state.mark_visited(url, target["name"])
                 yield doc
                 yielded_any = True
+                target_yielded = True
                 time.sleep(self._rate_limit)
 
-            # First successful target — stop the fallback chain
-            break
+            if target_yielded:
+                # At least one article was harvested from this target — stop fallback (WR-01)
+                break
+            else:
+                # Listing returned 200 but zero articles were harvested — try next target
+                logger.warning(
+                    "Target %r listing succeeded but zero articles harvested; "
+                    "trying next target",
+                    target["name"],
+                )
 
         if not yielded_any:
             logger.warning(
-                "All blog targets returned non-200 — Wikipedia-only mode"
+                "All blog targets returned non-200 or zero articles — Wikipedia-only mode"
             )
 
     def _fetch_article_urls(self, target: dict) -> Optional[list]:
