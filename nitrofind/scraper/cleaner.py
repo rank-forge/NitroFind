@@ -36,7 +36,9 @@ def make_excerpt(body_text: str) -> str:
 def compute_era_bucket(production_start: Optional[int]) -> str:
     """Derive decade label from production year (L-07).
 
-    Returns "Unknown" when production_start is None or 0 (falsy).
+    Returns "Unknown" when production_start is None, 0, or outside the
+    valid automotive range 1900–2099 (WR-03). Any out-of-range value (including
+    negative years) would produce a nonsensical bucket string.
     Otherwise returns f"{(production_start // 10) * 10}s" (L-07 exact formula).
 
     Examples:
@@ -44,8 +46,10 @@ def compute_era_bucket(production_start: Optional[int]) -> str:
         compute_era_bucket(2003) == "2000s"
         compute_era_bucket(None) == "Unknown"
         compute_era_bucket(0)    == "Unknown"
+        compute_era_bucket(-500) == "Unknown"
+        compute_era_bucket(2100) == "Unknown"
     """
-    if not production_start:
+    if not production_start or production_start < 1900 or production_start > 2099:
         return "Unknown"
     return f"{(production_start // 10) * 10}s"
 
