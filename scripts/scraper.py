@@ -61,7 +61,7 @@ def _load_config(config_path: str) -> dict:
     NEVER calls bare yaml.load — only yaml.safe_load.
     """
     try:
-        with open(config_path, "r") as fh:
+        with open(config_path, "r", encoding="utf-8") as fh:
             return yaml.safe_load(fh)
     except FileNotFoundError:
         sys.stderr.write(f"Config file not found: {config_path}\n")
