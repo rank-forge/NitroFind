@@ -206,24 +206,39 @@ class WikipediaScraper:
             "format": "json",
         }
         results = []
+        first_page_fetched = False
         try:
             while True:
                 data = self._session.get(
                     MEDIAWIKI_API_URL, params=params, timeout=30
                 ).json()
                 results.extend(data["query"]["categorymembers"])
+                first_page_fetched = True
                 if not data.get("continue"):
                     break
                 params["cmcontinue"] = data["continue"]["cmcontinue"]
                 time.sleep(self._rate_limit)
         except Exception as exc:
-            logger.warning(
-                "MediaWiki API failure for %r: %s: %s",
-                category_title,
-                type(exc).__name__,
-                exc,
-            )
-            return []
+            if not first_page_fetched:
+                # Category unreachable before any results were collected
+                logger.warning(
+                    "MediaWiki API failure for %r (no results collected): %s: %s",
+                    category_title,
+                    type(exc).__name__,
+                    exc,
+                )
+                return []
+            else:
+                # Network died mid-pagination — results list is truncated (WR-02)
+                logger.error(
+                    "MediaWiki API failure for %r mid-pagination after %d results "
+                    "(results are PARTIAL — category walk is incomplete): %s: %s",
+                    category_title,
+                    len(results),
+                    type(exc).__name__,
+                    exc,
+                )
+                # Return whatever was collected so the partial list is still usable
 
         if return_titles:
             return [item["title"] for item in results]
