@@ -11,10 +11,14 @@ wikipedia:
     - "Category:Cars by year of introduction"
   max_depth: 2
   rate_limit_seconds: 0.5  # MediaWiki etiquette — do not reduce below 0.5
-  user_agent: "NitroFind/1.0 (nullsecurity1337@gmail.com; personal offline research tool)"
+  # Supply your own contact address so Wikipedia can reach you if needed.
+  # Format: "NitroFind/1.0 (your-email@example.com; personal offline research tool)"
+  user_agent: "NitroFind/1.0 (offline automotive research tool)"
 
 blogs:
   size_halt_bytes: 1800000000  # 1.8 GB — SCRP-04; halts indexing before 2 GB cap
+  # Supply your own contact address here (CR-05). Keep the NitroFind/1.0 prefix.
+  user_agent: "NitroFind/1.0 (offline automotive research tool)"
   headers:
     User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"

@@ -15,7 +15,7 @@ Requirement coverage:
            scraped_at, body, excerpt, word_count, has_infobox, image_count, era_bucket)
   SCRP-02: fallback chain advances to next enabled target on listing 403 (Pitfall 3)
   D-06: URL already in state is skipped without fetching the article
-  Security/etiquette: User-Agent is HONEST_USER_AGENT; does not contain "Mozilla"
+  Security/etiquette: User-Agent comes from config or default; does not contain "Mozilla"
 
 Anti-patterns avoided:
   Pitfall 3: 403 → graceful skip + log (no browser impersonation)
@@ -27,7 +27,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nitrofind.scraper.blogs import BlogScraper, HONEST_USER_AGENT
+from nitrofind.scraper.blogs import BlogScraper, _DEFAULT_USER_AGENT
 
 # ---------------------------------------------------------------------------
 # Shared fixtures / helpers
@@ -372,13 +372,17 @@ def test_state_visited_url_is_skipped():
 
 
 def test_honest_user_agent_not_mozilla():
-    """Session User-Agent is HONEST_USER_AGENT and does not contain 'Mozilla'."""
+    """Session User-Agent comes from config (or default) and does not contain 'Mozilla'."""
     scraper = _make_scraper()
 
     ua = scraper._session.headers["User-Agent"]
-    assert ua == HONEST_USER_AGENT, (
-        f"Expected HONEST_USER_AGENT; got: {ua!r}"
+    # When no user_agent key is in the config, _DEFAULT_USER_AGENT is used (CR-05)
+    assert ua == _DEFAULT_USER_AGENT, (
+        f"Expected _DEFAULT_USER_AGENT; got: {ua!r}"
     )
     assert "Mozilla" not in ua, (
         f"User-Agent must not contain 'Mozilla' (no browser impersonation); got: {ua!r}"
+    )
+    assert ua.startswith("NitroFind/1.0"), (
+        f"User-Agent must start with 'NitroFind/1.0'; got: {ua!r}"
     )

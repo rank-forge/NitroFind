@@ -35,9 +35,10 @@ from nitrofind.scraper.state import SQLiteStateManager
 
 logger = logging.getLogger(__name__)
 
-HONEST_USER_AGENT = (
-    "NitroFind/1.0 (nullsecurity1337@gmail.com; personal offline research tool)"
-)
+# Default User-Agent used when config["blogs"]["user_agent"] is not set.
+# The NitroFind/1.0 prefix is hardcoded; each user should supply their own
+# contact address via scraper.yaml blogs.user_agent (CR-05).
+_DEFAULT_USER_AGENT = "NitroFind/1.0 (offline automotive research tool)"
 
 
 class BlogScraper:
@@ -67,8 +68,11 @@ class BlogScraper:
         self._state = state
         self._rate_limit = float(config["blogs"].get("rate_limit_seconds", 1.0))
         self._session = requests.Session()
-        # HONEST_USER_AGENT — no browser impersonation (Pitfall 3, RESEARCH.md security domain)
-        self._session.headers["User-Agent"] = HONEST_USER_AGENT
+        # Read User-Agent from config so each user supplies their own contact info
+        # (CR-05); fall back to a generic NitroFind/1.0 string without a personal address.
+        self._session.headers["User-Agent"] = config["blogs"].get(
+            "user_agent", _DEFAULT_USER_AGENT
+        )
 
     def yield_documents(self) -> Generator[dict, None, None]:
         """Generator: yield one document dict per successfully scraped article.
