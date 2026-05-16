@@ -117,11 +117,48 @@ def test_help_exits_zero():
 
 
 def test_load_config_rejects_yaml_load_in_source():
-    """T-02-01 regression guard: source must use yaml.safe_load, never yaml.load(."""
+    """T-02-01 regression guard: AST-level check that yaml.safe_load is called and
+    yaml.load is never called (including through an alias) in scripts/scraper.py.
+
+    A source-text scan would pass even if yaml.safe_load only appeared in a comment
+    or yaml.load were called via an alias. The AST walk catches both patterns (WR-06).
+    """
+    import ast as _ast
+
     source_path = Path(__file__).parent.parent.parent / "scripts" / "scraper.py"
-    source = source_path.read_text()
-    assert "yaml.safe_load" in source, "yaml.safe_load must be present in scripts/scraper.py"
-    assert "yaml.load(" not in source, "yaml.load( must NOT be present in scripts/scraper.py"
+    tree = _ast.parse(source_path.read_text(encoding="utf-8"))
+
+    safe_load_calls = []
+    unsafe_load_calls = []
+
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.Call):
+            continue
+        func = node.func
+        # Detect yaml.safe_load(...)
+        if (
+            isinstance(func, _ast.Attribute)
+            and isinstance(func.value, _ast.Name)
+            and func.value.id == "yaml"
+            and func.attr == "safe_load"
+        ):
+            safe_load_calls.append(node)
+        # Detect yaml.load(...) — bare yaml.load without the "safe_" prefix
+        if (
+            isinstance(func, _ast.Attribute)
+            and isinstance(func.value, _ast.Name)
+            and func.value.id == "yaml"
+            and func.attr == "load"
+        ):
+            unsafe_load_calls.append(node)
+
+    assert safe_load_calls, (
+        "yaml.safe_load() must be called in scripts/scraper.py (T-02-01)"
+    )
+    assert not unsafe_load_calls, (
+        f"yaml.load() must NOT be called in scripts/scraper.py (T-02-01); "
+        f"found {len(unsafe_load_calls)} call(s)"
+    )
 
 
 def test_main_uses_yaml_safe_load(tmp_path):
