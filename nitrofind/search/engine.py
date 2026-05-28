@@ -27,7 +27,6 @@ from typing import Callable
 from PyQt6.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal
 from elasticsearch import Elasticsearch
 
-from nitrofind.es_manager import ES_URL  # single source of truth (WR-01)
 from nitrofind.search.models import ArticleResult
 from nitrofind.search.query_builder import build_search_body
 

@@ -433,12 +433,17 @@ class TestSearchEngineSearch:
 
 
 class TestEngineModuleContracts:
-    def test_es_url_imported_from_es_manager(self):
-        """engine.py must import ES_URL from nitrofind.es_manager (WR-01)."""
-        import nitrofind.search.engine as engine_module
-        # ES_URL must be accessible in the engine module namespace via import
-        assert hasattr(engine_module, "ES_URL")
-        assert engine_module.ES_URL == "http://localhost:9200"
+    def test_search_engine_accepts_elasticsearch_client(self):
+        """SearchEngine must accept an Elasticsearch client injected at construction.
+
+        The engine does not construct its own client from ES_URL — the caller
+        provides a client configured for localhost:9200.  This test verifies that
+        the construction contract (client injection) works without raising.
+        """
+        from elasticsearch import Elasticsearch
+        client = Elasticsearch(ES_URL)  # localhost:9200 — not connecting, just constructing
+        engine = SearchEngine(client)
+        assert engine._client is client
 
     def test_index_name_hardcoded_not_accepted_from_user(self):
         """index='car_articles' must appear as a string literal in engine.py (T-03-04)."""
