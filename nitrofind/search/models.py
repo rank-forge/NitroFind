@@ -66,14 +66,18 @@ class ArticleResult:
         """
         src = hit.get("_source", {})
         highlights = hit.get("highlight", {})
+        raw_score = hit.get("_score")
+        score = float(raw_score) if raw_score is not None else 0.0
+        raw_word_count = src.get("word_count")
+        word_count = int(raw_word_count) if raw_word_count is not None else 0
         return cls(
             title=src.get("title", ""),
             url=src.get("url", ""),
             source_domain=src.get("source_domain", ""),
-            score=hit.get("_score", 0.0),
+            score=score,
             excerpt=src.get("excerpt", ""),
             published_at=src.get("published_at"),
-            word_count=src.get("word_count", 0),
+            word_count=word_count,
             has_infobox=src.get("has_infobox", False),
             manufacturer=src.get("manufacturer"),
             era_bucket=src.get("era_bucket"),
