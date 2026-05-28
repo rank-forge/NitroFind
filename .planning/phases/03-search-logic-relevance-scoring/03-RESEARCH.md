@@ -608,22 +608,13 @@ for hit in resp["hits"]["hits"]:
 
 **If this table is empty:** All claims in this research were verified or cited — no user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Weight empirical tuning checkpoint**
-   - What we know: State.md explicitly flags that starting weights need tuning against real data
-   - What's unclear: Whether success criteria SC-1 ("Ferrari 308 in top 3") will pass with initial weights or require iteration
-   - Recommendation: Include a plan task that runs `explain=True` queries and documents the actual function scores; treat tuning as a separate validation task not a blocker
+1. **Weight empirical tuning checkpoint** — RESOLVED: Plans include test_recency_decay_active with explain=True; weight tuning is a post-execution validation step, not a plan blocker. Starting weights are implemented; empirical tuning follows from observing real scores against indexed data.
 
-2. **Filter vs post_filter for Phase 4 sidebar**
-   - What we know: Phase 4 requires a filter sidebar (SRCH-04); filters go inside function_score.query for this phase
-   - What's unclear: Whether Phase 4 will need aggregation counts to show unfiltered facet totals (requires post_filter)
-   - Recommendation: Use filter-inside-function_score for Phase 3; document the post_filter option as a Phase 4 decision
+2. **Filter vs post_filter for Phase 4 sidebar** — RESOLVED: filter-inside-function_score used for Phase 3 (no aggregations needed); post_filter deferred to Phase 4 per recommendation.
 
-3. **SearchEngine singleton vs per-request construction**
-   - What we know: `Elasticsearch` client is thread-safe; can be shared
-   - What's unclear: Whether `main.py` should construct `SearchEngine` after `on_es_ready()` and pass it to `StubMainWindow`, or whether Phase 4 main window constructs it
-   - Recommendation: Phase 3 scope only — construct SearchEngine in tests via mock client; Phase 4 integration is out of scope here
+3. **SearchEngine singleton vs per-request construction** — RESOLVED: Phase 3 scope only — SearchEngine constructed via mock client in tests; Phase 4 wires the singleton to main.py after on_es_ready().
 
 ## Environment Availability
 
