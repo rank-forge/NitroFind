@@ -290,13 +290,49 @@ class TestSearchWorkerRun:
         body = {"query": {}, "highlight": {}, "size": 20, "from": 0, "_source": []}
         signals = _SearchSignals()
         received = []
-        signals.results_ready.connect(lambda results: received.append(results))
+        signals.results_ready.connect(lambda results, took: received.append(results))
 
         worker = _SearchWorker(mock_client, body, signals)
         worker.run()
 
         assert len(received) == 1
         assert received[0] == []
+
+    def test_results_ready_emits_took_ms(self):
+        """run() must emit took_ms as the second arg from ES response 'took' field (W0-EXT-02)."""
+        mock_client = MagicMock()
+        mock_client.search.return_value = {
+            "took": 7,
+            "hits": {"hits": [], "total": {"value": 0}},
+        }
+        body = {"query": {}, "highlight": {}, "size": 20, "from": 0, "_source": []}
+        signals = _SearchSignals()
+        took_values = []
+        signals.results_ready.connect(lambda results, took: took_values.append(took))
+
+        worker = _SearchWorker(mock_client, body, signals)
+        worker.run()
+
+        assert len(took_values) == 1
+        assert took_values[0] == 7
+
+    def test_results_ready_took_ms_defaults_to_zero(self):
+        """run() must emit took_ms=0 when ES response has no 'took' key (W0-EXT-02)."""
+        mock_client = MagicMock()
+        mock_client.search.return_value = {
+            "hits": {"hits": [], "total": {"value": 0}},
+            # No "took" key
+        }
+        body = {"query": {}, "highlight": {}, "size": 20, "from": 0, "_source": []}
+        signals = _SearchSignals()
+        took_values = []
+        signals.results_ready.connect(lambda results, took: took_values.append(took))
+
+        worker = _SearchWorker(mock_client, body, signals)
+        worker.run()
+
+        assert len(took_values) == 1
+        assert took_values[0] == 0
 
 
 # ---------------------------------------------------------------------------
