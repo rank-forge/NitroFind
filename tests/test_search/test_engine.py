@@ -219,7 +219,7 @@ class TestSearchWorkerRun:
         }
         signals = _SearchSignals()
         received = []
-        signals.results_ready.connect(lambda results: received.extend(results))
+        signals.results_ready.connect(lambda results, took: received.extend(results))
 
         worker = _SearchWorker(mock_client, body, signals)
         worker.run()
@@ -275,7 +275,7 @@ class TestSearchWorkerRun:
         body = {"query": {}, "highlight": {}, "size": 20, "from": 0, "_source": []}
         signals = _SearchSignals()
         received = []
-        signals.results_ready.connect(lambda results: received.extend(results))
+        signals.results_ready.connect(lambda results, took: received.extend(results))
 
         worker = _SearchWorker(mock_client, body, signals)
         worker.run()
@@ -432,7 +432,7 @@ class TestSearchEngineSearch:
         engine._pool.start = tracking_start
 
         results_received = []
-        engine.search("Ferrari", callback=lambda r: results_received.extend(r))
+        engine.search("Ferrari", callback=lambda r, took: results_received.extend(r))
         engine._pool.start = original_start
 
         # pool.start() must have been called exactly once
@@ -555,7 +555,7 @@ def test_search_callback_receives_article_results():
 
     engine.search(
         "Ferrari",
-        callback=lambda r: results_received.extend(r),
+        callback=lambda r, took: results_received.extend(r),
         error_callback=lambda e: errors_received.append(e),
     )
 
@@ -584,7 +584,7 @@ def test_ferrari_308_top3():
 
     signals = _SearchSignals()
     results = []
-    signals.results_ready.connect(lambda r: results.extend(r))
+    signals.results_ready.connect(lambda r, took: results.extend(r))
 
     body = build_search_body("Ferrari 308")
     worker = _SearchWorker(client, body, signals)

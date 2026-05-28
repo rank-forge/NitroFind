@@ -10,6 +10,11 @@ Requirement coverage:
   RLVN-03: infobox boost (weight function) executed via ES
   RLVN-04: score/boost modes (score_mode=sum, boost_mode=multiply) via ES
 
+W0-EXT-02 (Phase 4):
+  results_ready signal extended to pyqtSignal(list, int) where int is took_ms
+  (milliseconds from ES response "took" field). Satisfies UIPL-02 (query time display).
+  Falls back to 0 when ES response has no "took" key.
+
 Security mitigations:
   T-03-01 (query injection): query_text passed to build_search_body which places it
            inside multi_match "query" string value — never interpolated as raw DSL key
@@ -45,8 +50,8 @@ class _SearchSignals(QObject):
     QRunnable does not inherit QObject and cannot hold pyqtSignal attributes.
     """
 
-    results_ready = pyqtSignal(list)   # list[ArticleResult] — emitted on success
-    search_failed = pyqtSignal(str)    # error message string — emitted on exception
+    results_ready = pyqtSignal(list, int)  # (list[ArticleResult], took_ms) — W0-EXT-02
+    search_failed = pyqtSignal(str)        # error message string — emitted on exception
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +107,8 @@ class _SearchWorker(QRunnable):
                 ArticleResult.from_es_hit(hit)
                 for hit in resp["hits"]["hits"]
             ]
-            self._signals.results_ready.emit(results)
+            took_ms = resp.get("took", 0)  # W0-EXT-02: ms from ES response; 0 if absent
+            self._signals.results_ready.emit(results, took_ms)
         except Exception as exc:
             logger.warning("Search failed: %s: %s", type(exc).__name__, exc)
             self._signals.search_failed.emit(str(exc))
@@ -135,7 +141,7 @@ class SearchEngine:
         filters: list[dict] | None = None,
         size: int = 20,
         from_: int = 0,
-        callback: Callable[[list], None] | None = None,
+        callback: Callable[[list, int], None] | None = None,
         error_callback: Callable[[str], None] | None = None,
     ) -> None:
         """Submit a search to the thread pool. Returns immediately (non-blocking).
