@@ -141,11 +141,15 @@ def test_row_padding_constant():
 # ---------------------------------------------------------------------------
 
 def test_make_doc_returns_document_with_zero_margin(qtbot):
-    """Test 5: ResultDelegate._make_doc sets documentMargin to 0."""
+    """Test 5: ResultDelegate._make_doc sets documentMargin to 0.
+
+    QStyledItemDelegate is a QObject, not a QWidget — do not call qtbot.addWidget.
+    qtbot is still needed here to ensure a QApplication is running.
+    """
     from nitrofind.ui.result_delegate import ResultDelegate
 
+    # QStyledItemDelegate is a QObject, not a QWidget; no addWidget call needed.
     delegate = ResultDelegate()
-    qtbot.addWidget(delegate)
 
     html = "<b>Test Title</b><br>domain.com<br>Some excerpt text."
     doc = delegate._make_doc(html, width=400)
@@ -159,9 +163,13 @@ def test_make_doc_returns_document_with_zero_margin(qtbot):
 
 
 def test_size_hint_returns_positive_height(qtbot):
-    """Test 6: ResultDelegate.sizeHint returns a QSize with positive height for non-empty HTML."""
-    from PyQt6.QtWidgets import QListWidget, QListWidgetItem
-    from PyQt6.QtCore import Qt
+    """Test 6: ResultDelegate.sizeHint returns a QSize with positive height for non-empty HTML.
+
+    viewOptions() was removed in Qt6. Use QStyleOptionViewItem directly and
+    set the rect manually to simulate the view's available width.
+    """
+    from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QStyleOptionViewItem
+    from PyQt6.QtCore import Qt, QRect
     from nitrofind.ui.result_delegate import ResultDelegate, _result_to_html
 
     list_widget = QListWidget()
@@ -182,9 +190,9 @@ def test_size_hint_returns_positive_height(qtbot):
     item.setData(Qt.ItemDataRole.UserRole, html)
     list_widget.addItem(item)
 
-    option = list_widget.viewOptions()
-    # Need a valid option rect to compute sizeHint
-    option.rect = list_widget.rect()
+    # Build a QStyleOptionViewItem with a valid rect simulating 400px width
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 400, 60)
 
     size = delegate.sizeHint(option, list_widget.model().index(0, 0))
     assert size.height() > 0, (
