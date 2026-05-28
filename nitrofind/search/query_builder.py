@@ -236,8 +236,8 @@ def build_search_body(
                 },
             }
         },
-        "size": min(size, MAX_RESULT_SIZE),   # T-03-02: clamp unbounded requests
-        "from": from_,
+        "size": max(0, min(size, MAX_RESULT_SIZE)),   # T-03-02: clamp to [0, MAX_RESULT_SIZE]
+        "from": max(0, from_),                        # clamp to non-negative
         "_source": [
             "title", "url", "source_domain", "excerpt",
             "published_at", "word_count", "has_infobox",
