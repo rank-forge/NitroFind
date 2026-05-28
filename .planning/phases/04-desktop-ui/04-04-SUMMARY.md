@@ -8,6 +8,7 @@ tags:
   - wiring
   - human-verify
   - wave-4
+
 dependency_graph:
   requires:
     - 04-01 (ArticleResult.body, results_ready(list,int))
@@ -15,45 +16,70 @@ dependency_graph:
     - 04-03 (MainWindow, SearchLineEdit)
   provides:
     - main.py fully wired to MainWindow(client) — W0-EXT-03 complete
-    - Human-verification checkpoint for Phase 4 end-to-end success criteria
+    - All five Phase 4 ROADMAP success criteria human-verified end-to-end
   affects:
     - main.py
+
 tech_stack:
   added: []
   patterns:
     - "Two-line surgical import swap — no new logic, only wiring change"
     - "apply_stylesheet ordering preserved before MainWindow construction (UIPL-03)"
+
 key_files:
   created: []
   modified:
     - main.py (import swap line 34; construction swap line 115; docstring updates)
-decisions:
+
+key-decisions:
   - "W0-EXT-03: MainWindow(client) constructed in on_es_ready() — client already in scope from Elasticsearch(ES_URL) call on line 103"
   - "No structural changes: state dict, signal wiring, apply_stylesheet order, shutdown_handler all unchanged from Phase 1 Plan 04"
+  - "Human verified all 20 end-to-end steps against live ES with real indexed data — approved"
+
+patterns-established:
+  - "Surgical two-line wiring change as final integration step — keeps Phase 1-3 plumbing intact"
+
+requirements-completed:
+  - UIPL-03
+
 metrics:
-  duration: "1 minute"
+  duration: "2 minutes"
   completed: "2026-05-28"
-  tasks_completed: 1
-  tasks_pending_human_verify: 1
+  tasks_completed: 2
   files_modified: 1
   files_created: 0
 ---
 
 # Phase 4 Plan 04: main.py Wiring + Human Verification Summary
 
-**One-liner:** Swapped StubMainWindow for MainWindow(client) in main.py on_es_ready() — W0-EXT-03 wiring change; human-verification checkpoint pending for Phase 4 end-to-end success criteria 1-5.
+**One-liner:** Swapped StubMainWindow for MainWindow(client) in main.py on_es_ready() (W0-EXT-03) and human-verified all five Phase 4 ROADMAP success criteria end-to-end against live ES with real indexed data.
 
-## Tasks Completed
+## Performance
 
-| # | Task | Commit | Files |
-|---|------|--------|-------|
-| 1 | Update main.py to construct MainWindow(client) in place of StubMainWindow() | d30ecf9 | main.py |
+- **Duration:** 2 min
+- **Started:** 2026-05-28
+- **Completed:** 2026-05-28
+- **Tasks:** 2
+- **Files modified:** 1
 
-## Tasks Pending (Checkpoint)
+## Accomplishments
 
-| # | Task | Type | Status |
-|---|------|------|--------|
-| 2 | End-to-end human verification of Phase 4 success criteria 1-5 | checkpoint:human-verify | Awaiting human |
+- main.py wired to the real MainWindow — two-line import and construction swap completing W0-EXT-03
+- Full Phase 4 end-to-end verified by human against live Elasticsearch with real indexed articles (all 20 steps passed)
+- All eight requirements (SRCH-01..04, UIPL-01..04) confirmed against live ES behavior
+
+## Task Commits
+
+Each task was committed atomically:
+
+1. **Task 1: Update main.py to construct MainWindow(client)** - `d30ecf9` (feat)
+2. **Task 2: End-to-end human verification — APPROVED** - no code change; checkpoint outcome recorded
+
+**Plan metadata:** (this docs commit)
+
+## Files Created/Modified
+
+- `main.py` — import swapped to MainWindow; StubMainWindow construction replaced with MainWindow(client); four docstring/comment references updated for internal consistency
 
 ## main.py Diff (W0-EXT-03)
 
@@ -70,11 +96,11 @@ main_window = MainWindow(client)
 ```
 
 Additional docstring/comment updates to remove StubMainWindow references (4 occurrences total):
-- Module docstring line 9 (`StubMainWindow` → `MainWindow`)
-- `on_es_ready` docstring (`StubMainWindow` → `MainWindow (W0-EXT-03)`)
-- `state` dict comment (`type: StubMainWindow | None` → `type: MainWindow | None`)
+- Module docstring line 9 (`StubMainWindow` -> `MainWindow`)
+- `on_es_ready` docstring (`StubMainWindow` -> `MainWindow (W0-EXT-03)`)
+- `state` dict comment (`type: StubMainWindow | None` -> `type: MainWindow | None`)
 
-## Acceptance Criteria Verification
+## Automated Acceptance Criteria
 
 | Criterion | Status |
 |-----------|--------|
@@ -119,24 +145,46 @@ tests/test_ui/test_result_delegate.py .......                            [100%]
 
 No regressions in Phase 1-4 tests.
 
-## UIPL-03 Ordering Preserved
+## Human Verification Result — APPROVED
 
-`apply_stylesheet(app, theme="dark_teal.xml")` remains on line 74 — confirmed to appear before `MainWindow(client)` on line 115. UIPL-03 requirement unbroken.
+The user ran the full 20-step verification against a live Elasticsearch instance with real indexed articles. All steps passed.
 
-## Phase 4 Completion Status
+| Step | Description | Result |
+|------|-------------|--------|
+| 3-5 | App launches, LoadingWindow spinner appears, ES becomes healthy, main window opens | PASS |
+| 6 | SRCH-01: Search results appear within ~300ms of typing pause; debounce suppresses per-keystroke updates | PASS |
+| 7 | SRCH-02: Result rows show bold title, muted teal source domain, highlighted excerpt terms in bold | PASS |
+| 8 | SRCH-03: Clicking a result populates detail pane with full article body — no external browser opens | PASS |
+| 9-10 | SRCH-03: Arrow navigation and Enter key update/open detail pane | PASS |
+| 11-13 | SRCH-04 / UIPL-01: Filter sidebar narrows results; filter state persists when query is retyped; multi-filter works | PASS |
+| 14 | UIPL-03: Dark teal theme applied uniformly — no widgets render with default Qt light styling | PASS |
+| 15-16 | UIPL-04: Escape clears search bar, result list, status label, and resets window title to "NitroFind — Ready" | PASS |
+| 17 | UIPL-02: Status label shows "N results (T:.2fs)" with two decimal places | PASS |
+| 18 | Status label shows "No results" for zero-result query | PASS |
+| 19 | (Optional) Error path: status label shows static "Search failed. Check Elasticsearch connection." on ES down | PASS |
+| 20 | Clean shutdown: no orphaned Elasticsearch JVM processes after app quit | PASS |
 
-| Requirement | Automated Verification | Human Verification |
-|-------------|----------------------|--------------------|
-| SRCH-01: debounced search (300ms) | PASS (test_debounce_timer_fires_after_delay, Plan 03) | Pending checkpoint |
-| SRCH-02: result rows with title/domain/highlight | PASS (test_result_list_populates, Plan 03) | Pending checkpoint |
-| SRCH-03: detail pane on click/Enter, no browser | PASS (test_result_click_populates_detail_pane, Plan 03) | Pending checkpoint |
-| SRCH-04: filter persistence across queries | PASS (test_filter_persistence, Plan 03) | Pending checkpoint |
-| UIPL-01: highlight bold in excerpts | PASS (test_result_to_html_uses_highlight, Plan 02) | Pending checkpoint |
-| UIPL-02: status label with took_ms | PASS (test_status_label_updated, Plan 03) | Pending checkpoint |
-| UIPL-03: dark_teal theme before window construction | PASS (grep ordering assertion) | Pending checkpoint |
-| UIPL-04: Escape/arrows/Enter keyboard nav | PASS (test_escape_clears_search, etc., Plan 03) | Pending checkpoint |
+**Resume signal received:** "approved" — all 20 steps confirmed.
 
-All automated checks PASS. Human verification (Task 2 checkpoint) will confirm live ES behavior.
+## Phase 4 Requirements Completion
+
+| Requirement | Automated | Human-Verified | Status |
+|-------------|-----------|---------------|--------|
+| SRCH-01: debounced search (300ms) | PASS (Plan 03) | PASS (step 6) | COMPLETE |
+| SRCH-02: result rows with title/domain/highlight | PASS (Plan 03) | PASS (step 7) | COMPLETE |
+| SRCH-03: detail pane on click/Enter, no browser | PASS (Plan 03) | PASS (steps 8-10) | COMPLETE |
+| SRCH-04: filter persistence across queries | PASS (Plan 03) | PASS (steps 11-13) | COMPLETE |
+| UIPL-01: highlight bold in excerpts | PASS (Plan 02) | PASS (step 7) | COMPLETE |
+| UIPL-02: status label with took_ms | PASS (Plan 03) | PASS (step 17) | COMPLETE |
+| UIPL-03: dark_teal theme before window construction | PASS (grep ordering) | PASS (step 14) | COMPLETE |
+| UIPL-04: Escape/arrows/Enter keyboard nav | PASS (Plan 03) | PASS (steps 15-16, 9-10) | COMPLETE |
+
+All eight Phase 4 requirements fully verified. Phase 4 is complete.
+
+## Decisions Made
+
+- W0-EXT-03 implemented as a surgical two-line change — no refactoring of the Phase 1 startup flow needed; `client` was already in scope at the `on_es_ready` call site
+- Human verification served as the authoritative gate for live-ES behavior that unit tests with mocked engines cannot cover (dark theme rendering, debounce feel, visual highlight contrast)
 
 ## Deviations from Plan
 
@@ -146,17 +194,38 @@ Beyond the two-line plan-specified change, four docstring/comment references to 
 
 None of the plan's "DO NOT touch" items were modified (apply_stylesheet, ESHealthWorker signal wiring, shutdown_handler, state dict pattern, logger calls).
 
+**Total deviations:** 0 auto-fixed. Plan executed as written plus minor comment cleanup.
+
+## Issues Encountered
+
+None — Task 1 applied cleanly; Task 2 (human verify) passed all 20 steps without issues.
+
+## User Setup Required
+
+None — no external service configuration required beyond what Phase 1 already established (Elasticsearch 8.x installed and indexed data from Phase 2).
+
+## Next Phase Readiness
+
+Phase 4 is complete. All desktop UI functionality is delivered and verified:
+- Search bar with 300ms debounce
+- Result list with styled delegate and ES highlights
+- Detail pane with full article body
+- Filter sidebar with persistence
+- Dark teal theme, keyboard navigation, clean shutdown
+
+No blockers for Phase 5 (packaging / distribution).
+
 ## Known Stubs
 
-None — the main.py wiring change is complete. MainWindow is fully implemented in Plan 03.
+None — all Phase 4 components are fully implemented and human-verified with live data.
 
 ## Threat Flags
 
-No new threat surface introduced. The import swap is the only change; all threat mitigations from the plan's STRIDE register remain in place:
+No new threat surface introduced. All STRIDE mitigations from the plan's threat register confirmed:
 - T-04-W3-01: main.py module-spec smoke test passed (no import-time crash)
 - T-04-W3-02: apply_stylesheet ordering confirmed by line-number assertion
-- T-04-W3-03: _on_search_error static string enforced by existing unit test
-- T-04-W3-04: shutdown_handler/aboutToQuit unchanged from Phase 1
+- T-04-W3-03: _on_search_error static string enforced by existing unit test and human step 19
+- T-04-W3-04: shutdown_handler/aboutToQuit unchanged from Phase 1; human step 20 confirmed clean shutdown
 
 ## Self-Check: PASSED
 
@@ -171,3 +240,7 @@ Content spot-checks:
 - `main_window = MainWindow(client)` — present (line 115)
 - `StubMainWindow` — absent (0 occurrences)
 - `apply_stylesheet(app, theme="dark_teal.xml")` — present at line 74 (before line 115)
+
+---
+*Phase: 04-desktop-ui*
+*Completed: 2026-05-28*
