@@ -374,17 +374,23 @@ class TestSearchEngineSearch:
 
         This test verifies the connection order by patching pool.start and
         checking that signals.results_ready has connections at start() time.
+
+        A buggy implementation that called pool.start() before connecting signals
+        would fail the receivers() assertion inside tracking_start.
         """
         mock_client = _make_mock_client()
         engine = SearchEngine(mock_client)
 
         connection_count_at_start = []
+        receiver_count_at_start = []
 
         original_start = engine._pool.start
 
         def tracking_start(worker):
-            # At this point, signals should already be connected
-            # We verify by checking the worker's signals object
+            # At this point, signals must already be connected — capture receiver count.
+            # If start() is called before connect(), receivers() returns 0 here.
+            count = worker._signals.receivers(worker._signals.results_ready)
+            receiver_count_at_start.append(count)
             connection_count_at_start.append("start_called")
 
         engine._pool.start = tracking_start
@@ -393,8 +399,13 @@ class TestSearchEngineSearch:
         engine.search("Ferrari", callback=lambda r: results_received.extend(r))
         engine._pool.start = original_start
 
-        # The pool.start was called after signals were connected
+        # pool.start() must have been called exactly once
         assert len(connection_count_at_start) == 1, "pool.start() should have been called once"
+        # signals must have been connected BEFORE pool.start() was called (T-03-06)
+        assert receiver_count_at_start[0] > 0, (
+            "results_ready had no receivers at pool.start() time — "
+            "signal connection happened AFTER start(), violating T-03-06"
+        )
 
     def test_search_with_no_callback_does_not_raise(self):
         """SearchEngine.search() with no callback must not raise."""
