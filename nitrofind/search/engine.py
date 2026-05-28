@@ -24,7 +24,7 @@ Security mitigations:
 import logging
 from typing import Callable
 
-from PyQt6.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal
 from elasticsearch import Elasticsearch
 
 from nitrofind.es_manager import ES_URL  # single source of truth (WR-01)
@@ -81,7 +81,6 @@ class _SearchWorker(QRunnable):
         self._body = body
         self._signals = signals
 
-    @pyqtSlot()
     def run(self) -> None:
         """Execute the ES search query and emit results via signals.
 
