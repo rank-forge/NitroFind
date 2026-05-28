@@ -6,7 +6,7 @@ Wires all Phase 1 components together:
   2. Creates QApplication and applies qt-material dark theme (UIPL-03)
   3. Constructs LoadingWindow and ESHealthWorker
   4. Connects all signals before worker.start() (Pitfall 4 — race condition prevention)
-  5. On es_ready: calls ensure_index, shows StubMainWindow (INFRA-02, SCHEMA-01..04)
+  5. On es_ready: calls ensure_index, shows MainWindow (INFRA-02, SCHEMA-01..04, W0-EXT-03)
   6. On es_failed: maps reason to Copywriting Contract error text and calls show_error (D-07)
   7. On Retry: shuts down stale worker, creates a fresh ESHealthWorker (D-07)
   8. On quit (aboutToQuit): calls worker.shutdown_es() to prevent orphan JVM (INFRA-03)
@@ -31,7 +31,7 @@ from qt_material import apply_stylesheet
 from nitrofind.es_manager import ES_URL, ESHealthWorker, validate_es_home
 from nitrofind.es_schema import ensure_index
 from nitrofind.ui.loading_window import LoadingWindow
-from nitrofind.ui.main_window import StubMainWindow
+from nitrofind.ui.main_window import MainWindow
 
 # ---------------------------------------------------------------------------
 # Module logger — raw reason strings (JVM output) go here, never to the UI label
@@ -86,7 +86,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     state = {
         "worker": None,   # type: ESHealthWorker | None
-        "main_window": None,  # type: StubMainWindow | None
+        "main_window": None,  # type: MainWindow | None
     }
 
     # ------------------------------------------------------------------
@@ -97,7 +97,7 @@ def main() -> None:
 
         Creates an Elasticsearch client, calls ensure_index() to realize
         the SCHEMA-01..04 fields in a live index, then swaps LoadingWindow
-        for StubMainWindow.
+        for MainWindow (W0-EXT-03).
         """
         try:
             client = Elasticsearch(ES_URL)  # WR-01: use shared ES_URL constant
@@ -112,7 +112,7 @@ def main() -> None:
             )
             return
 
-        main_window = StubMainWindow()
+        main_window = MainWindow(client)
         main_window.show()
         # Keep a reference so the GC does not destroy it while the window is shown
         state["main_window"] = main_window
