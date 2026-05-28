@@ -171,6 +171,10 @@ def build_search_body(
     filters: list[dict] | None = None,
     size: int = 20,
     from_: int = 0,
+    recency_weight: float = DEFAULT_RECENCY_WEIGHT,
+    length_weight: float = DEFAULT_LENGTH_WEIGHT,
+    infobox_weight: float = DEFAULT_INFOBOX_WEIGHT,
+    missing_published_score: float = DEFAULT_MISSING_PUBLISHED_SCORE,
 ) -> dict:
     """Assemble the complete ES search request body dict.
 
@@ -178,17 +182,30 @@ def build_search_body(
     so they gate which documents are scored. Size is clamped to MAX_RESULT_SIZE
     to prevent denial-of-service via unbounded result requests (T-03-02).
 
+    Weight parameters are forwarded to build_function_score_query so callers
+    can tune scoring without bypassing this entry point.
+
     Args:
-        query_text: User's search text forwarded to build_function_score_query.
-        filters:    List of term filter dicts from build_filter_clauses, or None/[].
-        size:       Number of results to return. Clamped to MAX_RESULT_SIZE (100).
-        from_:      Offset for pagination (0-based).
+        query_text:              User's search text forwarded to build_function_score_query.
+        filters:                 List of term filter dicts from build_filter_clauses, or None/[].
+        size:                    Number of results to return. Clamped to MAX_RESULT_SIZE (100).
+        from_:                   Offset for pagination (0-based).
+        recency_weight:          Weight for Gaussian decay function (forwarded to function_score).
+        length_weight:           Weight for field_value_factor length signal.
+        infobox_weight:          Weight for infobox boolean boost.
+        missing_published_score: Fixed score for articles without published_at.
 
     Returns:
         dict ready to be passed to client.search() as keyword arguments.
         Keys: "query", "highlight", "size", "from", "_source".
     """
-    fs_query = build_function_score_query(query_text)
+    fs_query = build_function_score_query(
+        query_text,
+        recency_weight=recency_weight,
+        length_weight=length_weight,
+        infobox_weight=infobox_weight,
+        missing_published_score=missing_published_score,
+    )
 
     if filters:
         # Wrap the function_score's base query in a bool with filter context.
