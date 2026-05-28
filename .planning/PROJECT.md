@@ -12,17 +12,17 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Scraper collects car articles and specs from Wikipedia and automotive blogs, outputs structured JSON — Validated in Phase 2: data-pipeline-scraper-indexer
+- [x] Local Elasticsearch node indexes all scraped data and stays under 2 GB total — Validated in Phase 2: data-pipeline-scraper-indexer
+- [x] Relevance scoring based on source quality signals: publication date, domain reputation, article completeness — Validated in Phase 3: search-logic-relevance-scoring
+- [x] As-you-type (instant) search that queries Elasticsearch with each keystroke — Validated in Phase 4: desktop-ui
+- [x] Filter panel alongside search for narrowing by manufacturer, era, body style, and other car attributes — Validated in Phase 4: desktop-ui
+- [x] Result detail view renders the full scraped article text inline, within the app — Validated in Phase 4: desktop-ui
+- [x] PyQt native desktop UI with a fluid, modern feel comparable to a browser search experience — Validated in Phase 4: desktop-ui
 
 ### Active
 
-- [ ] Scraper collects car articles and specs from Wikipedia and automotive blogs, outputs structured JSON
-- [ ] Local Elasticsearch node indexes all scraped data and stays under 2 GB total
-- [ ] Relevance scoring based on source quality signals: publication date, domain reputation, article completeness
-- [ ] As-you-type (instant) search that queries Elasticsearch with each keystroke
-- [ ] Filter panel alongside search for narrowing by manufacturer, era, body style, and other car attributes
-- [ ] Result detail view renders the full scraped article text inline, within the app
-- [ ] PyQt native desktop UI with a fluid, modern feel comparable to a browser search experience
+- [ ] Application packaged as standalone executable (Phase 5)
 
 ### Out of Scope
 
@@ -76,4 +76,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-12 after initialization*
+*Last updated: 2026-05-28 — Phase 4 complete, full UI delivered and human-verified*
