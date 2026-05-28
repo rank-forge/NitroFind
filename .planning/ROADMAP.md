@@ -57,7 +57,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A long, infobox-equipped article consistently outscores a short, infobox-free article for the same query — confirming both the log(word_count) modifier and has_infobox boost are active
   4. An article with no published_at field does not score 1.0 on the recency signal — it receives the configured missing-field fallback score instead of distorting ranking
   5. All ES calls in the search layer execute without blocking: calling the query builder from a background thread returns results via callback without touching the main thread
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 03-01-PLAN.md — ArticleResult dataclass + build_function_score_query + build_search_body (RLVN-01..04)
+- [ ] 03-02-PLAN.md — SearchEngine with QRunnable/_SearchSignals worker (RLVN-01 threading)
+- [ ] 03-03-PLAN.md — Unit + integration test suite for models, query_builder, and engine (RLVN-01..04)
 **UI hint**: no
 
 ### Phase 4: Desktop UI
@@ -92,6 +95,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Schema Foundation | 4/4 | Complete | 2026-05-13 |
 | 2. Data Pipeline (Scraper + Indexer) | 5/5 | Complete   | 2026-05-15 |
-| 3. Search Logic & Relevance Scoring | 0/TBD | Not started | - |
+| 3. Search Logic & Relevance Scoring | 0/3 | Not started | - |
 | 4. Desktop UI | 0/TBD | Not started | - |
 | 5. Packaging & Distribution | 0/TBD | Not started | - |
