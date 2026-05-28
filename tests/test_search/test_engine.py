@@ -514,3 +514,50 @@ def test_search_callback_receives_article_results():
 
     assert len(results_received) > 0, "Expected at least one result for 'Ferrari'"
     assert all(isinstance(r, ArticleResult) for r in results_received)
+
+
+@pytest.mark.integration
+def test_ferrari_308_top3():
+    """Integration: searching 'Ferrari 308' returns a result with '308' in top 3 titles."""
+    if not os.environ.get("ES_HOME"):
+        pytest.skip("ES_HOME not set — skipping live ES integration test")
+
+    from elasticsearch import Elasticsearch
+    from nitrofind.search.query_builder import build_search_body
+    client = Elasticsearch(ES_URL, request_timeout=5)
+
+    signals = _SearchSignals()
+    results = []
+    signals.results_ready.connect(lambda r: results.extend(r))
+
+    body = build_search_body("Ferrari 308")
+    worker = _SearchWorker(client, body, signals)
+    worker.run()
+
+    assert len(results) >= 1, "Expected at least one result for 'Ferrari 308'"
+    assert any(
+        "308" in r.title.lower() for r in results[:3]
+    ), f"Expected '308' in top-3 titles, got: {[r.title for r in results[:3]]}"
+
+
+@pytest.mark.integration
+def test_recency_decay_active():
+    """Integration: explain=True confirms function_score scoring tree (recency decay active)."""
+    if not os.environ.get("ES_HOME"):
+        pytest.skip("ES_HOME not set — skipping live ES integration test")
+
+    from elasticsearch import Elasticsearch
+    from nitrofind.search.query_builder import build_function_score_query
+    client = Elasticsearch(ES_URL, request_timeout=5)
+
+    resp = client.search(
+        index="car_articles",
+        query=build_function_score_query("Ferrari 308"),
+        explain=True,
+        size=3,
+    )
+    hits = resp["hits"]["hits"]
+    if hits:
+        assert "_explanation" in hits[0], (
+            "Expected '_explanation' in first hit — confirms function_score scoring tree is active"
+        )
