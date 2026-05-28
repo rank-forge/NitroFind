@@ -77,7 +77,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Clicking a result (or pressing Enter) displays the full article text in a detail pane inside the app — no browser window opens
   4. Filtering by manufacturer, era bucket, or body style in the sidebar narrows results without clearing the search query, and the filter state persists if the user types a new query
   5. The app renders with a dark theme by default, and the user can navigate results with arrow keys, open with Enter, and clear the search box with Escape
-**Plans**: TBD
+**Plans**: 4 plans
+**Wave 1:**
+- [ ] 04-01-PLAN.md — Wave 0 extensions to Phase 3 (ArticleResult.body, results_ready took_ms signal) + tests/test_ui/ package marker (SRCH-03, UIPL-02)
+**Wave 2** *(blocked on Wave 1)*:
+- [ ] 04-02-PLAN.md — ResultDelegate + _result_to_html + FilterSidebar with single-select groups + pytest-qt unit tests (SRCH-02, SRCH-04, UIPL-01)
+**Wave 3** *(blocked on Wave 2)*:
+- [ ] 04-03-PLAN.md — MainWindow + SearchLineEdit with debounce, splitter layout, stale-result guard, signal wiring + full pytest-qt test grid (SRCH-01..04, UIPL-01/02/04)
+**Wave 4** *(blocked on Wave 3)*:
+- [ ] 04-04-PLAN.md — main.py wiring (MainWindow swap) + end-to-end human verification of ROADMAP success criteria (UIPL-03)
 **UI hint**: yes
 
 ### Phase 5: Packaging & Distribution
@@ -100,5 +108,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Infrastructure & Schema Foundation | 4/4 | Complete | 2026-05-13 |
 | 2. Data Pipeline (Scraper + Indexer) | 5/5 | Complete   | 2026-05-15 |
 | 3. Search Logic & Relevance Scoring | 3/3 | Human verification needed | 2026-05-28 |
-| 4. Desktop UI | 0/TBD | Not started | - |
+| 4. Desktop UI | 0/4 | Not started | - |
 | 5. Packaging & Distribution | 0/TBD | Not started | - |
