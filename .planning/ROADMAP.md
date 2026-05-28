@@ -61,7 +61,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Wave 1:**
 - [x] 03-01-PLAN.md — ArticleResult dataclass + build_function_score_query + build_search_body (RLVN-01..04)
 **Wave 2** *(blocked on Wave 1 completion)*:
-- [ ] 03-02-PLAN.md — SearchEngine with QRunnable/_SearchSignals worker (RLVN-01 threading)
+- [x] 03-02-PLAN.md — SearchEngine with QRunnable/_SearchSignals worker (RLVN-01 threading)
 **Wave 3** *(blocked on Wave 2 completion)*:
 - [ ] 03-03-PLAN.md — Unit + integration test suite for models, query_builder, and engine (RLVN-01..04)
 **Cross-cutting constraints:** ES index name hard-coded as "car_articles" in all files; ES_URL imported from nitrofind.es_manager; logger uses % formatting throughout.
