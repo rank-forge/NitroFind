@@ -351,7 +351,7 @@ class TestSearchEngineSearch:
                 "_source": [],
             }
             engine.search("Ferrari 308")
-        mock_build.assert_called_once_with("Ferrari 308", filters=None, size=20)
+        mock_build.assert_called_once_with("Ferrari 308", filters=None, size=20, from_=0)
 
     def test_search_passes_filters_to_build_search_body(self):
         """SearchEngine.search() must forward filters to build_search_body."""
@@ -367,7 +367,7 @@ class TestSearchEngineSearch:
                 "_source": [],
             }
             engine.search("Ferrari 308", filters=filters, size=10)
-        mock_build.assert_called_once_with("Ferrari 308", filters=filters, size=10)
+        mock_build.assert_called_once_with("Ferrari 308", filters=filters, size=10, from_=0)
 
     def test_search_connects_callback_before_start(self):
         """Signal connections must be established before pool.start() is called.

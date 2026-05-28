@@ -136,6 +136,7 @@ class SearchEngine:
         query_text: str,
         filters: list[dict] | None = None,
         size: int = 20,
+        from_: int = 0,
         callback: Callable[[list], None] | None = None,
         error_callback: Callable[[str], None] | None = None,
     ) -> None:
@@ -152,13 +153,14 @@ class SearchEngine:
             filters:        Optional list of term filter dicts from build_filter_clauses.
             size:           Number of results requested. Clamped by build_search_body
                             to MAX_RESULT_SIZE (100) before reaching the worker.
+            from_:          Pagination offset (0-based). Forwarded to build_search_body.
             callback:       Called with list[ArticleResult] on success. Optional.
             error_callback: Called with error message string on failure. Optional.
 
         Returns:
             None — always returns immediately; results arrive via callback.
         """
-        body = build_search_body(query_text, filters=filters, size=size)
+        body = build_search_body(query_text, filters=filters, size=size, from_=from_)
         signals = _SearchSignals()
 
         # Connect ALL signals BEFORE pool.start(worker) — race condition if reversed.
