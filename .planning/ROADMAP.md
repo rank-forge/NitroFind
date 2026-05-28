@@ -83,7 +83,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Wave 2** *(blocked on Wave 1)*:
 - [x] 04-02-PLAN.md — ResultDelegate + _result_to_html + FilterSidebar with single-select groups + pytest-qt unit tests (SRCH-02, SRCH-04, UIPL-01)
 **Wave 3** *(blocked on Wave 2)*:
-- [ ] 04-03-PLAN.md — MainWindow + SearchLineEdit with debounce, splitter layout, stale-result guard, signal wiring + full pytest-qt test grid (SRCH-01..04, UIPL-01/02/04)
+- [x] 04-03-PLAN.md — MainWindow + SearchLineEdit with debounce, splitter layout, stale-result guard, signal wiring + full pytest-qt test grid (SRCH-01..04, UIPL-01/02/04)
 **Wave 4** *(blocked on Wave 3)*:
 - [ ] 04-04-PLAN.md — main.py wiring (MainWindow swap) + end-to-end human verification of ROADMAP success criteria (UIPL-03)
 **UI hint**: yes
