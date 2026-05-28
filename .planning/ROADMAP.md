@@ -59,7 +59,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. All ES calls in the search layer execute without blocking: calling the query builder from a background thread returns results via callback without touching the main thread
 **Plans**: 3 plans
 **Wave 1:**
-- [ ] 03-01-PLAN.md — ArticleResult dataclass + build_function_score_query + build_search_body (RLVN-01..04)
+- [x] 03-01-PLAN.md — ArticleResult dataclass + build_function_score_query + build_search_body (RLVN-01..04)
 **Wave 2** *(blocked on Wave 1 completion)*:
 - [ ] 03-02-PLAN.md — SearchEngine with QRunnable/_SearchSignals worker (RLVN-01 threading)
 **Wave 3** *(blocked on Wave 2 completion)*:
