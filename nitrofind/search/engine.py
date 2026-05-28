@@ -24,7 +24,7 @@ Security mitigations:
 import logging
 from typing import Callable
 
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 from elasticsearch import Elasticsearch
 
 from nitrofind.es_manager import ES_URL  # single source of truth (WR-01)
@@ -142,7 +142,8 @@ class SearchEngine:
     ) -> None:
         """Submit a search to the thread pool. Returns immediately (non-blocking).
 
-        Results are delivered via callback in the Qt main thread via signal/slot.
+        Results are delivered via callback in the Qt main thread via
+        QueuedConnection signal/slot (Qt.ConnectionType.QueuedConnection).
         Signal connections are established BEFORE pool.start(worker) to prevent
         the race condition where a fast worker emits before connections are made
         (T-03-06 mitigation — Pitfall 6 from RESEARCH.md).
@@ -165,10 +166,12 @@ class SearchEngine:
 
         # Connect ALL signals BEFORE pool.start(worker) — race condition if reversed.
         # (T-03-06: Pitfall 6 — fast workers can emit before connections are established)
+        # QueuedConnection ensures callbacks are delivered in the Qt main thread,
+        # not in the worker thread that emits the signal (WR-01 fix).
         if callback:
-            signals.results_ready.connect(callback)
+            signals.results_ready.connect(callback, Qt.ConnectionType.QueuedConnection)
         if error_callback:
-            signals.search_failed.connect(error_callback)
+            signals.search_failed.connect(error_callback, Qt.ConnectionType.QueuedConnection)
 
         worker = _SearchWorker(self._client, body, signals)
         self._pool.start(worker)  # LAST — after all signal connections
