@@ -60,7 +60,6 @@ def test_article_result_all_fields():
         "excerpt", "published_at", "word_count", "has_infobox",
         "manufacturer", "era_bucket", "body_style",
         "highlight_title", "highlight_body",
-        "body",
     }
     import dataclasses
     actual_fields = {f.name for f in dataclasses.fields(ArticleResult)}
@@ -150,42 +149,3 @@ def test_from_es_hit_extracts_all_source_fields():
     assert r.body_style == "coupe"
     assert r.highlight_title == ["<b>Porsche</b> 911"]
     assert r.highlight_body == ["iconic sports car"]
-
-
-# ---------------------------------------------------------------------------
-# W0-EXT-01: body field tests
-# ---------------------------------------------------------------------------
-
-
-def test_article_result_body_default_empty_string():
-    """ArticleResult.body defaults to empty string (W0-EXT-01)."""
-    r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
-    assert r.body == ""
-
-
-def test_article_result_body_from_es_hit():
-    """from_es_hit populates body from _source and falls back to empty string when missing."""
-    # Case 1: body present in _source
-    hit_with_body = {
-        "_score": 1.0,
-        "_source": {
-            "title": "T",
-            "url": "U",
-            "source_domain": "D",
-            "body": "full text here",
-        },
-    }
-    r = ArticleResult.from_es_hit(hit_with_body)
-    assert r.body == "full text here"
-
-    # Case 2: body missing from _source — should fall back to empty string
-    hit_no_body = {
-        "_score": 1.0,
-        "_source": {
-            "title": "T",
-            "url": "U",
-            "source_domain": "D",
-        },
-    }
-    r2 = ArticleResult.from_es_hit(hit_no_body)
-    assert r2.body == ""
