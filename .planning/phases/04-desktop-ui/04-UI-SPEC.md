@@ -31,6 +31,8 @@ Source: CLAUDE.md (fixed stack), 04-RESEARCH.md Standard Stack.
 
 ## Layout Architecture
 
+Primary focal point: SearchLineEdit — receives focus on window open; all other elements are secondary.
+
 ### Window Structure
 
 ```
@@ -75,7 +77,7 @@ Declared values (multiples of 4 only):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline text gaps |
-| sm | 8px | Widget internal padding, layout spacing, result row side margins |
+| sm | 8px | Widget internal padding, layout spacing, result row side margins, result row top/bottom padding |
 | md | 16px | Section separation, search bar vertical margins |
 | lg | 24px | Filter group label top margin |
 | xl | 32px | Sidebar section breaks |
@@ -83,11 +85,10 @@ Declared values (multiples of 4 only):
 | 3xl | 64px | not used in Phase 4 |
 
 Exceptions:
-- Result row vertical padding: 6px top + 6px bottom (QMargins(8, 6, 8, 6) in ResultDelegate) — derived from 04-RESEARCH.md Pattern 3 code, intentional half-step for compact list density
 - Search bar height: 40px fixed — ensures touch-friendly target without excess chrome
 - Status label height: 20px fixed
 
-Source: 04-RESEARCH.md Pattern 3 (_ROW_PADDING = QMargins(8, 6, 8, 6)).
+Source: 04-RESEARCH.md Pattern 3; 6px vertical padding replaced with 8px to maintain 8-point grid.
 
 ---
 
@@ -215,7 +216,7 @@ Source: 04-RESEARCH.md Pattern 1.
 
 **Class:** `ResultDelegate(QStyledItemDelegate)` in `nitrofind/ui/result_delegate.py`.
 
-**Row padding:** `QMargins(8, 6, 8, 6)` — 8px sides, 6px top/bottom.
+**Row padding:** `QMargins(8, 8, 8, 8)` — 8px sides, 8px top/bottom. `_ROW_PADDING = QMargins(8, 8, 8, 8)`.
 
 **HTML template per result row:**
 ```python
@@ -542,6 +543,7 @@ Source: 04-RESEARCH.md Security Domain.
 | Domain color #80cbc4 | 04-RESEARCH.md _result_to_html code example |
 | Logger format: `%` formatting, `getLogger(__name__)` per module | CLAUDE.md Conventions |
 | Window title em-dash convention | main.py StubMainWindow (Phase 1) |
+| Row padding: QMargins(8,8,8,8) | Checker revision 2026-05-28 — 6px replaced with 8px to satisfy 8-point grid |
 
 ---
 
