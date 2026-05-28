@@ -10,6 +10,10 @@ Requirement coverage:
   RLVN-03: has_infobox field exposed for infobox boost signal; safe False default
   RLVN-04: score field carries ES _score value for ranking display
 
+W0-EXT-01 (Phase 4):
+  body field added for SRCH-03 full-article detail pane. Populated from ES
+  _source["body"] via from_es_hit; defaults to empty string when not present.
+
 Anti-patterns avoided:
   Direct dict key access in from_es_hit — all access via .get() with safe defaults
   so that an empty or partial ES hit dict never raises KeyError
@@ -37,6 +41,7 @@ class ArticleResult:
 
     # Optional fields with safe defaults matching ES mapping types
     excerpt: str = ""
+    body: str = ""          # W0-EXT-01: full article text for SRCH-03 detail pane
     published_at: str | None = None
     word_count: int = 0
     has_infobox: bool = False
@@ -76,6 +81,7 @@ class ArticleResult:
             source_domain=src.get("source_domain", ""),
             score=score,
             excerpt=src.get("excerpt", ""),
+            body=src.get("body", ""),  # W0-EXT-01
             published_at=src.get("published_at"),
             word_count=word_count,
             has_infobox=src.get("has_infobox", False),
