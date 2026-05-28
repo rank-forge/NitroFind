@@ -515,15 +515,19 @@ def test_search_callback_receives_article_results():
     results_received = []
     errors_received = []
 
+    from PyQt6.QtCore import QCoreApplication, QThreadPool
+
     engine.search(
         "Ferrari",
         callback=lambda r: results_received.extend(r),
         error_callback=lambda e: errors_received.append(e),
     )
 
-    # Wait briefly for the worker to complete (integration only)
-    import time
-    time.sleep(2)
+    # Wait for the worker to complete — deterministic, not time-based (IN-03 fix).
+    # waitForDone(10_000) blocks until all pool threads finish or 10 s elapse.
+    # processEvents() delivers any queued signals (QueuedConnection) to their slots.
+    QThreadPool.globalInstance().waitForDone(10_000)
+    QCoreApplication.processEvents()
 
     if errors_received:
         pytest.fail(f"Search failed with error: {errors_received[0]}")
