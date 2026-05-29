@@ -289,6 +289,7 @@ class MainWindow(QMainWindow):
         """
         query = self._search_bar.text().strip()
         if not query:
+            self._current_seq += 1  # CR-02: invalidate any in-flight search (T-04-05)
             self._result_list.clear()
             self._status_label.setText("")
             self.setWindowTitle("NitroFind — Ready")
