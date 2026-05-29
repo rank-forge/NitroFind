@@ -1,192 +1,201 @@
 ---
 phase: 05-packaging-distribution
-reviewed: 2026-05-29T00:00:00Z
+reviewed: 2026-05-29T12:00:00Z
 depth: standard
-files_reviewed: 10
+files_reviewed: 7
 files_reviewed_list:
-  - main.py
   - nitrofind/es_manager.py
-  - nitrofind.spec
-  - scripts/build_dist.py
   - tests/test_packaging/__init__.py
   - tests/test_packaging/test_config_injection.py
   - tests/test_packaging/test_path_resolution.py
   - tests/test_packaging/test_subprocess_handles.py
-  - config/scraper.yaml
-  - nitrofind/scraper/blogs.py
+  - nitrofind.spec
+  - scripts/build_dist.py
 findings:
   critical: 2
-  warning: 4
+  warning: 2
   info: 3
-  total: 9
+  total: 7
 status: issues_found
 ---
 
 # Phase 05: Code Review Report
 
-**Reviewed:** 2026-05-29T00:00:00Z
+**Reviewed:** 2026-05-29T12:00:00Z
 **Depth:** standard
-**Files Reviewed:** 10
+**Files Reviewed:** 7
 **Status:** issues_found
 
 ## Summary
 
-Review covers the phase 5 packaging and distribution additions: the PyInstaller spec, build assembly script, frozen-mode ES path/config injection in `es_manager.py`, `main.py` startup wiring, config injection tests, path resolution tests, subprocess handle tests, `config/scraper.yaml`, and `nitrofind/scraper/blogs.py`.
+Review covers the phase 05 packaging and distribution additions: `nitrofind/es_manager.py` (subprocess lifecycle, frozen-mode path resolution, config injection), the PyInstaller spec (`nitrofind.spec`), the build assembly script (`scripts/build_dist.py`), and the three test modules under `tests/test_packaging/`.
 
-The subprocess lifecycle, DEVNULL hardening, and PyInstaller spec are mostly sound. Two behavioral bugs stand out: `yield_documents` silently scrapes all enabled targets despite its documented first-winner contract, and a silent `inject_es_config` failure leaves the application hanging for 180 seconds with an unhelpful error message. Additional quality issues include a browser User-Agent shipped in the default config that contradicts the module's own documented anti-pattern, a dead config key, and missing `usedforsecurity=False` on a SHA-1 call.
+The DEVNULL hardening, `validate_es_home` path traversal mitigation, and PyInstaller spec (UPX disabled, onedir mode, `qt_material` `collect_all`) are all correct. Two blockers stand out: `ESHealthWorker.run()` has no exception handler around `_start_process()`, violating the INFRA-04 "exactly one signal" invariant and causing the UI to hang permanently on Popen failure; and `inject_es_config` calls `shutil.copy` before `os.makedirs`, so the copy fails with `FileNotFoundError` if `es_home/config/` does not pre-exist (a case the tests mask by always pre-creating `config/`). Two warnings cover a silent data-loss risk in `build_dist.py` (ES_BUNDLE name collision with `_internal/`) and a correctness gap in CTRL_BREAK_EVENT propagation through `cmd.exe` on Windows.
 
 ---
+
+## Narrative Findings (AI reviewer)
 
 ## Critical Issues
 
-### CR-01: `yield_documents` scrapes all targets, contradicting its documented first-winner contract
+### CR-01: `ESHealthWorker.run()` has no exception handler around `_start_process()` — INFRA-04 invariant broken
 
-**File:** `nitrofind/scraper/blogs.py:79-133`
+**File:** `nitrofind/es_manager.py:215`
 
-**Issue:** The docstring at line 85 explicitly states "If listing fetch succeeds → fetch articles, then **break** (first-winner)." There is no `break` statement anywhere in the `for target in self._targets:` loop. After exhausting all articles from the first successful target, the loop continues to the second and third enabled targets (`hagerty`, `caranddriver`, `hemmings` — all three enabled in `config/scraper.yaml`). This means all three sites are scraped unconditionally, tripling the expected data volume and potentially violating the 2 GB index cap earlier than anticipated. Any caller or operator reasoning from the docstring will have incorrect expectations about scraper scope and run time.
+**Issue:** `run()` opens with `self.process = self._start_process()` with no surrounding `try/except`. `_start_process()` calls `subprocess.Popen(...)` which raises `OSError`/`PermissionError` on any OS-level failure (binary not executable, filesystem error, OS resource exhaustion). When that exception propagates out of `run()`, the `QThread` terminates silently — no signal is emitted. The module docstring and class docstring both declare INFRA-04: "Emits exactly one signal per `run()` invocation." That contract is broken. The practical consequence is that the `LoadingWindow` stays in its "starting Elasticsearch…" state indefinitely because neither `es_ready` nor `es_failed` is ever emitted. The user sees a permanent spinner with no recovery path.
 
-**Fix:** Add a `break` after the inner article loop completes, matching the documented behavior:
+`validate_es_home` is called in `main.py` before the worker is constructed and checks that the binary exists at that instant, but between validation and `Popen` the file could be removed, permissions could change, or the OS could refuse the exec for unrelated reasons (e.g., SELinux, anti-malware, read-only mount).
+
+**Fix:** Wrap `_start_process()` in a `try/except` inside `run()`:
 
 ```python
-            for url in article_urls:
-                if self._state.is_visited(url):
-                    logger.debug("Skipping already-visited URL: %s", url)
-                    continue
-                doc = self._fetch_article(url, target)
-                if doc is None:
-                    continue
-                self._state.mark_visited(url, target["name"])
-                yield doc
-                yielded_any = True
-                time.sleep(self._rate_limit)
+def run(self) -> None:
+    try:
+        self.process = self._start_process()
+    except OSError as exc:
+        self.es_failed.emit(f"Failed to start Elasticsearch: {exc}")
+        return
 
-            break  # first-winner: stop after first target whose listing succeeds
+    client = Elasticsearch(ES_URL, request_timeout=2)
+    # ... rest of polling loop unchanged
 ```
-
-If the intent is actually to scrape all enabled targets (not first-winner), the docstring must be corrected to remove the false "first-winner" promise and the test suite should verify multi-target scraping.
 
 ---
 
-### CR-02: Silent `inject_es_config` failure causes a 180-second opaque hang instead of a fast-fail
+### CR-02: `inject_es_config` calls `shutil.copy` before `os.makedirs` — fails if `config/` does not exist
 
-**File:** `main.py:83-92`
+**File:** `nitrofind/es_manager.py:89-99`
 
-**Issue:** When `inject_es_config` raises `OSError` (e.g., the bundled `config/` directory is missing from a malformed frozen build, or the ES `config/` directory is read-only), the exception is caught at line 86, a `WARNING` is logged to the module logger (which may not be visible in windowed frozen mode), and execution continues. Elasticsearch then starts with its security-enabled defaults (TLS + auth). The `ESHealthWorker` health probe connects over plain HTTP and receives SSL or auth errors for the full 180-second deadline, then emits `es_failed` with the generic message "Could not connect to Elasticsearch." The user has no indication that config injection failed; the application appears to hang for 3 minutes before displaying a message that does not help them diagnose the root cause.
+**Issue:** The function performs:
+1. Line 89: `es_config = os.path.join(es_home, "config")`
+2. Lines 92-95: `shutil.copy(..., os.path.join(es_config, "elasticsearch.yml"))` — destination parent must exist
+3. Line 99: `os.makedirs(jvm_dir, exist_ok=True)` where `jvm_dir = es_config + "/jvm.options.d"`
 
-**Fix:** Treat `inject_es_config` failure as fatal before `QApplication` is constructed, consistent with the same fail-fast treatment applied to `validate_es_home`:
+If `es_home/config/` does not exist, `shutil.copy` at step 2 raises `FileNotFoundError` before `os.makedirs` at step 3 ever runs. `os.makedirs` would have created `config/` as an intermediate directory (it creates all missing parents), but it never gets the chance.
+
+The docstring claims `jvm.options.d/` is created if missing, but says nothing about `config/` needing to pre-exist, implying the function handles a bare `es_home`. In a freshly extracted ES tarball `config/` will be present, so this does not trigger in normal usage — but all four tests in `test_config_injection.py` explicitly pre-create `(es_home / "config").mkdir(parents=True)`, which masks the bug rather than exercising the real code path.
+
+**Fix:** Move `makedirs` before the first `shutil.copy`, using the `es_config` path so both `config/` and `jvm.options.d/` are created in one call:
 
 ```python
-    if es_home_raw:
-        try:
-            inject_es_config(es_home_raw, config_src)
-        except OSError as exc:
-            sys.stderr.write(
-                f"[nitrofind] Failed to inject ES config: {exc}\n"
-                "Check that the config/ directory is present alongside the application.\n"
-            )
-            sys.exit(1)
-```
+def inject_es_config(es_home: str, config_src_dir: str) -> None:
+    es_config = os.path.join(es_home, "config")
+    jvm_dir = os.path.join(es_config, "jvm.options.d")
 
-Alternatively, if the intent is to tolerate a pre-existing correct config, log the failure at WARNING and check whether `xpack.security.enabled` is already `false` before deciding to abort.
+    # Create both config/ and jvm.options.d/ before any writes
+    os.makedirs(jvm_dir, exist_ok=True)
+
+    shutil.copy(
+        os.path.join(config_src_dir, "elasticsearch.yml"),
+        os.path.join(es_config, "elasticsearch.yml"),
+    )
+    shutil.copy(
+        os.path.join(config_src_dir, "jvm.options"),
+        os.path.join(jvm_dir, "nitrofind.options"),
+    )
+```
 
 ---
 
 ## Warnings
 
-### WR-01: Browser User-Agent in shipped config contradicts module's documented anti-pattern
+### WR-01: `build_dist.py` does not validate `es_src.name` — a name like `_internal` destroys the PyInstaller output
 
-**File:** `config/scraper.yaml:23` / `nitrofind/scraper/blogs.py:16-17`
+**File:** `scripts/build_dist.py:65-68`
 
-**Issue:** The module docstring for `blogs.py` lists as an avoided anti-pattern: "Pitfall 3: honest User-Agent; ... no browser impersonation." The `BlogScraper.__init__` sets `session.headers["User-Agent"]` to the honest `NitroFind/1.0` value first, then iterates `config["blogs"]["headers"]` and overwrites it with the value from the YAML. The shipped `config/scraper.yaml` sets `blogs.headers.User-Agent` to `"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"` — a full Chrome browser impersonation UA. The shipped default therefore violates the project's own stated ethical constraint and may violate the terms of service of the scraped sites. The `blogs.user_agent` field in the same YAML section is also set to an honest NitroFind value, but it is immediately overwritten by the headers block, making it dead config.
+**Issue:** `es_dest = DIST_DIR / es_src.name` uses the last path component of `ES_BUNDLE` verbatim. If `ES_BUNDLE` resolves to any name that matches an existing sub-path of `dist/NitroFind/`, the subsequent `shutil.rmtree(es_dest)` (line 68) silently destroys that content before the copy. The critical case is `ES_BUNDLE=/path/to/_internal`: `es_dest` becomes `dist/NitroFind/_internal` and the entire PyInstaller `_internal/` bundle (Python interpreter, shared libraries, bundled packages) is deleted and replaced with an ES directory tree. The resulting zip would be a corrupt distribution that cannot run. This requires a user or CI script to set `ES_BUNDLE` incorrectly, but the damage is irreversible (no backup is made before `rmtree`).
 
-**Fix:** Either remove `User-Agent` from `blogs.headers` in `scraper.yaml` so the honest `blogs.user_agent` value is actually used, or remove `blogs.user_agent` and explicitly document that `headers.User-Agent` controls the UA. Do not ship a Chrome impersonation string as the default.
+**Fix:** Validate that `es_src.name` matches the expected pattern before proceeding:
 
----
-
-### WR-02: `config/scraper.yaml` `blogs.size_halt_bytes` is a dead config key — never read
-
-**File:** `config/scraper.yaml:19`
-
-**Issue:** `blogs.size_halt_bytes: 1800000000` is documented with the comment "SCRP-04; halts indexing before 2 GB cap." No Python code reads `config["blogs"]["size_halt_bytes"]`. The actual size halt is enforced by the compile-time constant `SIZE_HALT_BYTES = 1_800_000_000` in `nitrofind/scraper/indexer.py`. The YAML key gives operators a false sense of configurability: changing this value has no effect on actual scraper behavior.
-
-**Fix:** Either wire up the key — read `config["blogs"].get("size_halt_bytes", SIZE_HALT_BYTES)` in `BulkIndexer.__init__` and pass it through — or remove the key from `scraper.yaml` and add a comment in `indexer.py` explaining that the threshold is intentionally a code constant.
-
----
-
-### WR-03: `hashlib.sha1()` without `usedforsecurity=False` fails on FIPS-enabled systems
-
-**File:** `nitrofind/scraper/blogs.py:344`
-
-**Issue:** `hashlib.sha1(url.encode()).hexdigest()[:16]` calls SHA-1 without the `usedforsecurity=False` flag. On FIPS-compliant Python builds (common in enterprise and regulated environments), calling `hashlib.sha1()` without this flag raises `ValueError: [digital envelope routines] unsupported`. This would crash `_url_slug` — and by extension `_fetch_article` — for any article whose URL has no path segments, turning those documents into silent `None` returns. SHA-1 is used purely as a non-cryptographic hash here, so the fix is straightforward and has no security implications.
-
-**Fix:**
 ```python
-return hashlib.sha1(url.encode(), usedforsecurity=False).hexdigest()[:16]
+import re
+if not re.match(r'^elasticsearch-8\.\d+', es_src.name):
+    print(
+        "ES_BUNDLE directory name must match 'elasticsearch-8.*' "
+        f"(got '{es_src.name}'). This is required so resolve_es_home() "
+        "can find it at runtime."
+    )
+    sys.exit(1)
 ```
 
 ---
 
-### WR-04: `blogs.py` `rate_limit_seconds` config key is absent from the `blogs:` YAML section — always uses the hardcoded default
+### WR-02: `CTRL_BREAK_EVENT` sent to process group containing `cmd.exe` (not the JVM) — graceful shutdown may not reach Elasticsearch on Windows
 
-**File:** `config/scraper.yaml` / `nitrofind/scraper/blogs.py:69`
+**File:** `nitrofind/es_manager.py:160-164`
 
-**Issue:** `BlogScraper.__init__` reads `config["blogs"].get("rate_limit_seconds", 1.0)`. The shipped `config/scraper.yaml` defines `rate_limit_seconds: 0.5` only under the `wikipedia:` section, not under `blogs:`. The blog scraper therefore always uses the 1.0 second default, regardless of any value an operator might expect to configure. The comment in the YAML "do not reduce below 0.5" applies only to Wikipedia and is not present near the blogs configuration, making it invisible to operators trying to tune blog rate limiting.
+**Issue:** `_start_process` sets `shell=True` on Windows (line 278), which means `subprocess.Popen` spawns `cmd.exe /c elasticsearch.bat`. The `CREATE_NEW_PROCESS_GROUP` flag applies to the `cmd.exe` process and its children. `shutdown_es` then sends `CTRL_BREAK_EVENT` to this group. `cmd.exe` handles `CTRL_BREAK` for console applications but its forwarding behavior to child Java processes is not guaranteed: the ES JVM may terminate from the signal, or it may not receive it at all depending on how `cmd.exe` manages its children. The practical outcome is that ES may not flush its translog before being killed, which could leave the index in an inconsistent state requiring recovery on next start. The 10-second `process.wait(timeout=10)` + `kill()` fallback acts as a safety net but the "graceful" shutdown path is unreliable on Windows.
 
-**Fix:** Add `rate_limit_seconds: 1.0` explicitly under the `blogs:` section in `scraper.yaml` with an appropriate comment, so operators can see and tune the value.
+**Fix (preferred):** Use `subprocess.Popen` with `shell=False` and pass the `.bat` file as the command — recent Python versions on Windows can execute `.bat` files directly without `cmd.exe` when the path is explicit. If `shell=False` is not viable, document that Windows shutdown is force-kill after 10 s and remove the `CTRL_BREAK_EVENT` comment's implication of graceful flush.
 
-```yaml
-blogs:
-  rate_limit_seconds: 1.0  # seconds between article requests; do not reduce below 0.5
-  size_halt_bytes: 1800000000
-  ...
+```python
+# Alternative: shell=False with explicit cmd.exe invocation, preserving process group
+kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+return subprocess.Popen(
+    ["cmd.exe", "/c", es_bin], **kwargs
+)
 ```
+
+This explicitly separates `cmd.exe` from the ES JVM in the signal chain and makes the shutdown path easier to reason about.
 
 ---
 
 ## Info
 
-### IN-01: `scripts/build_dist.py` hardcodes version string `v1.0` in the output zip name
+### IN-01: `resolve_es_home` uses lexicographic sort — returns incorrect directory when multiple ES 8.x versions coexist
 
-**File:** `scripts/build_dist.py:40`
+**File:** `nitrofind/es_manager.py:64-65`
 
-**Issue:** `OUT_ZIP = Path("dist") / "NitroFind-v1.0-windows-x86_64.zip"` is a literal string. When the version is bumped, the filename will be stale unless this line is manually updated, and there is no single source of truth for the version.
+**Issue:** `sorted(launcher_dir.glob("elasticsearch-8.*"))` sorts lexicographically. `"elasticsearch-8.18.0"` sorts before `"elasticsearch-8.9.0"` because `'1' < '9'` at the minor-version position. If a user has both 8.9.0 and 8.18.0 alongside the launcher, `resolve_es_home()` returns `elasticsearch-8.18.0` (which happens to be correct by coincidence) but the selection criterion is not documented and will silently return the wrong version for version combinations like 8.8.0 vs 8.18.0. The function docstring does not mention what "first" means.
 
-**Fix:** Read the version from a `VERSION` file or `nitrofind/__version__.py`, or accept it as a CLI argument:
+**Fix:** Sort by extracted version tuple for semantic ordering, or document that lexicographic order is intentional and coincidentally correct for the expected version range:
+
 ```python
-version = os.environ.get("NITROFIND_VERSION", "v1.0")
-OUT_ZIP = Path("dist") / f"NitroFind-{version}-windows-x86_64.zip"
+import re as _re
+
+def _es_version_key(p: Path) -> tuple:
+    m = _re.search(r'(\d+)\.(\d+)\.(\d+)', p.name)
+    return tuple(int(x) for x in m.groups()) if m else (0, 0, 0)
+
+candidates = sorted(launcher_dir.glob("elasticsearch-8.*"), key=_es_version_key, reverse=True)
+return str(candidates[0]) if candidates else None
 ```
 
 ---
 
-### IN-02: `build_dist.py` assumes it is run from the repository root — no path guard
+### IN-02: `build_dist.py` uses relative `Path("dist")` — breaks when not run from repo root
 
 **File:** `scripts/build_dist.py:39-40`
 
-**Issue:** `DIST_DIR = Path("dist") / "NitroFind"` and `OUT_ZIP = Path("dist") / "NitroFind-v1.0-windows-x86_64.zip"` are relative paths. If the script is invoked from any directory other than the repo root (e.g., `cd scripts && python build_dist.py`), it will look for `scripts/dist/NitroFind/` and fail with a misleading "dist/NitroFind/ not found" message rather than a clear "run from repo root" error.
+**Issue:** `DIST_DIR = Path("dist") / "NitroFind"` and `OUT_ZIP = Path("dist") / "NitroFind-v1.0-windows-x86_64.zip"` are relative to the current working directory. If a developer runs `cd scripts && python build_dist.py`, the script looks for `scripts/dist/NitroFind/` and exits with `"dist/NitroFind/ not found. Run pyinstaller nitrofind.spec first."` — a misleading message that doesn't mention the CWD requirement.
 
-**Fix:** Anchor paths to the script's own directory:
+**Fix:** Anchor to the script file's location:
+
 ```python
-REPO_ROOT = Path(__file__).parent.parent
-DIST_DIR = REPO_ROOT / "dist" / "NitroFind"
-OUT_ZIP  = REPO_ROOT / "dist" / "NitroFind-v1.0-windows-x86_64.zip"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DIST_DIR  = REPO_ROOT / "dist" / "NitroFind"
+OUT_ZIP   = REPO_ROOT / "dist" / "NitroFind-v1.0-windows-x86_64.zip"
 ```
 
 ---
 
-### IN-03: `wikipedia.user_agent` in `config/scraper.yaml` contains a developer's personal email address
+### IN-03: `nitrofind.spec` `optimize=0` ships unoptimized bytecode — minor quality gap for a release build
 
-**File:** `config/scraper.yaml:16`
+**File:** `nitrofind.spec:32`
 
-**Issue:** `user_agent: "NitroFind/1.0 (leonardo.otaviano@sou.unifal-mg.edu.br; offline automotive research tool)"` contains a personal university email address hardcoded in a committed config file. This will appear in the User-Agent header sent to Wikipedia's servers by all users who run the scraper without modifying the config. The inline comment above it says "Supply your own contact address" — the placeholder was never replaced.
+**Issue:** `optimize=0` in the `Analysis` block means all `.pyc` files in the bundle are compiled at the default optimization level (no `__debug__` stripping, docstrings retained). For a production desktop release, `optimize=1` or `optimize=2` reduces bundle size and removes docstring overhead with no behavioral impact for this codebase (no `doctest`-dependent code was observed).
 
-**Fix:** Replace the email with a placeholder that clearly signals it must be customized, matching the comment's instruction:
-```yaml
-  user_agent: "NitroFind/1.0 (your-email@example.com; offline automotive research tool)"
+**Fix:** Set `optimize=1` for a release build:
+
+```python
+a = Analysis(
+    ...
+    optimize=1,
+)
 ```
 
 ---
 
-_Reviewed: 2026-05-29T00:00:00Z_
+_Reviewed: 2026-05-29T12:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
