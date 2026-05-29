@@ -215,7 +215,16 @@ class ESHealthWorker(QThread):
 
         Emits exactly one signal: es_ready or es_failed.
         """
-        self.process = self._start_process()
+        # CR-01: guard against OSError/PermissionError from subprocess.Popen so
+        # the INFRA-04 "exactly one signal per run()" contract is always satisfied.
+        # Without this, a Popen failure would propagate out of run(), silently
+        # killing the QThread with no signal emitted and the LoadingWindow stuck.
+        try:
+            self.process = self._start_process()
+        except OSError as exc:
+            self.es_failed.emit(f"Failed to start Elasticsearch: {exc}")
+            return
+
         client = Elasticsearch(ES_URL, request_timeout=2)
 
         deadline = time.monotonic() + 180  # D-04: 180-second total timeout (ES cold start can take ~2min)
