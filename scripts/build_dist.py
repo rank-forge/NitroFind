@@ -26,6 +26,7 @@ Source: RESEARCH.md Pattern 5 "Post-Build Archive Assembly"
 """
 
 import os
+import re
 import shutil
 import sys
 import zipfile
@@ -56,6 +57,19 @@ def main() -> None:
         sys.exit(1)
 
     es_src = Path(es_bundle)
+
+    # WR-01: Validate directory name matches expected pattern before proceeding.
+    # A name that collides with an existing sub-path of dist/NitroFind/ (e.g.
+    # "_internal") would cause shutil.rmtree(es_dest) to silently destroy the
+    # PyInstaller bundle. The pattern also ensures resolve_es_home() can find
+    # the directory at runtime via its elasticsearch-8.* glob.
+    if not re.match(r"^elasticsearch-8\.\d+", es_src.name):
+        print(
+            "ES_BUNDLE directory name must match 'elasticsearch-8.*' "
+            f"(got '{es_src.name}'). This is required so resolve_es_home() "
+            "can find it at runtime."
+        )
+        sys.exit(1)
 
     # -----------------------------------------------------------------------
     # Step 1 — Copy ES directory alongside PyInstaller output
