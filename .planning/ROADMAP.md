@@ -96,7 +96,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. On a clean machine with no Python or Java installed, extracting the distributed archive and running the launcher starts NitroFind and reaches the search-ready state (ES health check passes)
   2. The distributed package includes the pre-extracted Elasticsearch 8.18 directory alongside the PyInstaller bundle — no separate ES download step is required
   3. The launcher correctly configures elasticsearch.yml and jvm.options (TLS off, heap pinned to 512 MB) before starting the ES subprocess — default ES settings are never used
-**Plans**: TBD
+**Plans**: 2 plans
+**Wave 1:**
+- [ ] 05-01-PLAN.md — frozen-mode runtime plumbing: resolve_es_home + inject_es_config + DEVNULL subprocess fix + unit tests (PKG-01)
+**Wave 2** *(blocked on Wave 1)*:
+- [ ] 05-02-PLAN.md — nitrofind.spec + scripts/build_dist.py + manual clean-machine smoke test checkpoint (PKG-01)
 
 ## Progress
 
@@ -109,4 +113,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Data Pipeline (Scraper + Indexer) | 5/5 | Complete   | 2026-05-15 |
 | 3. Search Logic & Relevance Scoring | 3/3 | Human verification needed | 2026-05-28 |
 | 4. Desktop UI | 0/4 | Not started | - |
-| 5. Packaging & Distribution | 0/TBD | Not started | - |
+| 5. Packaging & Distribution | 0/2 | Not started | - |

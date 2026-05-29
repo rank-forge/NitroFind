@@ -68,11 +68,13 @@ class BlogScraper:
         self._state = state
         self._rate_limit = float(config["blogs"].get("rate_limit_seconds", 1.0))
         self._session = requests.Session()
-        # Read User-Agent from config so each user supplies their own contact info
-        # (CR-05); fall back to a generic NitroFind/1.0 string without a personal address.
+        # Apply all headers from config (browser-like UA, Accept, Accept-Language).
+        # blogs.headers overrides blogs.user_agent when both are present (CR-05).
         self._session.headers["User-Agent"] = config["blogs"].get(
             "user_agent", _DEFAULT_USER_AGENT
         )
+        for header_name, header_value in config["blogs"].get("headers", {}).items():
+            self._session.headers[header_name] = header_value
 
     def yield_documents(self) -> Generator[dict, None, None]:
         """Generator: yield one document dict per successfully scraped article.
@@ -93,9 +95,9 @@ class BlogScraper:
             article_urls = self._fetch_article_urls(target)
 
             if article_urls is None:
-                # Listing fetch failed — advance to next enabled target (Pitfall 3)
+                # Listing fetch failed — skip this target and continue with others
                 logger.warning(
-                    "Target %r listing unavailable, trying next", target["name"]
+                    "Target %r listing unavailable, skipping", target["name"]
                 )
                 continue
 
@@ -103,7 +105,13 @@ class BlogScraper:
                 "Target %r: discovered %d article URLs", target["name"], len(article_urls)
             )
 
-            target_yielded = False
+            if not article_urls:
+                logger.warning(
+                    "Target %r listing succeeded but zero articles harvested",
+                    target["name"],
+                )
+                continue
+
             for url in article_urls:
                 # D-06: skip already-indexed URLs before fetching
                 if self._state.is_visited(url):
@@ -118,19 +126,7 @@ class BlogScraper:
                 self._state.mark_visited(url, target["name"])
                 yield doc
                 yielded_any = True
-                target_yielded = True
                 time.sleep(self._rate_limit)
-
-            if target_yielded:
-                # At least one article was harvested from this target — stop fallback (WR-01)
-                break
-            else:
-                # Listing returned 200 but zero articles were harvested — try next target
-                logger.warning(
-                    "Target %r listing succeeded but zero articles harvested; "
-                    "trying next target",
-                    target["name"],
-                )
 
         if not yielded_any:
             logger.warning(
@@ -138,6 +134,76 @@ class BlogScraper:
             )
 
     def _fetch_article_urls(self, target: dict) -> Optional[list]:
+        """Fetch article URLs for a target — via sitemap index if configured, else listing page.
+
+        Returns:
+            List of absolute article URLs (deduplicated, order preserved), or
+            None if discovery fails (HTTP error or connection error).
+        """
+        if "sitemap_index_url" in target:
+            urls = self._fetch_urls_from_sitemap_index(target)
+            if urls is not None:
+                return urls
+            logger.warning(
+                "Target %r sitemap discovery failed; falling back to listing page",
+                target["name"],
+            )
+
+        return self._fetch_urls_from_listing(target)
+
+    def _fetch_urls_from_sitemap_index(self, target: dict) -> Optional[list]:
+        """Discover article URLs by walking a sitemap index and its sub-sitemaps.
+
+        Fetches the sitemap index, then each sub-sitemap in sequence, collecting
+        all URLs that start with target['base_url'] (excludes the base URL itself).
+
+        Returns:
+            Deduplicated list of article URLs, or None on index fetch failure.
+        """
+        index_url = target["sitemap_index_url"]
+        base_url = target["base_url"]
+
+        try:
+            resp = self._session.get(index_url, timeout=15)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            logger.warning(
+                "Sitemap index fetch failed for %r: %s: %s",
+                target["name"], type(exc).__name__, exc,
+            )
+            return None
+
+        soup = BeautifulSoup(resp.text, "lxml-xml")
+        sub_urls = [loc.text.strip() for loc in soup.find_all("loc")]
+        if not sub_urls:
+            logger.warning("No sub-sitemaps found in sitemap index for %r", target["name"])
+            return None
+
+        logger.info("Target %r: walking %d sub-sitemaps", target["name"], len(sub_urls))
+        all_urls: list[str] = []
+
+        for i, sub_url in enumerate(sub_urls):
+            try:
+                sub_resp = self._session.get(sub_url, timeout=15)
+                sub_resp.raise_for_status()
+                sub_soup = BeautifulSoup(sub_resp.text, "lxml-xml")
+                locs = [loc.text.strip() for loc in sub_soup.find_all("loc")]
+                article_urls = [u for u in locs if u.startswith(base_url) and u.rstrip("/") != base_url.rstrip("/")]
+                all_urls.extend(article_urls)
+            except Exception as exc:
+                logger.warning("Failed to fetch sub-sitemap %s: %s: %s", sub_url, type(exc).__name__, exc)
+
+            if (i + 1) % 50 == 0:
+                logger.info(
+                    "Target %r: processed %d/%d sub-sitemaps, %d URLs collected",
+                    target["name"], i + 1, len(sub_urls), len(all_urls),
+                )
+            time.sleep(self._rate_limit)
+
+        logger.info("Target %r: sitemap walk complete — %d article URLs found", target["name"], len(all_urls))
+        return list(dict.fromkeys(all_urls))
+
+    def _fetch_urls_from_listing(self, target: dict) -> Optional[list]:
         """Fetch the article listing page and return deduplicated article URLs.
 
         Returns:
@@ -174,7 +240,6 @@ class BlogScraper:
             if href:
                 urls.append(urljoin(target["base_url"], href))
 
-        # Deduplicate while preserving order
         return list(dict.fromkeys(urls))
 
     def _fetch_article(self, url: str, target: dict) -> Optional[dict]:
