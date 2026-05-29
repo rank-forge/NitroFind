@@ -98,7 +98,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The launcher correctly configures elasticsearch.yml and jvm.options (TLS off, heap pinned to 512 MB) before starting the ES subprocess — default ES settings are never used
 **Plans**: 2 plans
 **Wave 1:**
-- [ ] 05-01-PLAN.md — frozen-mode runtime plumbing: resolve_es_home + inject_es_config + DEVNULL subprocess fix + unit tests (PKG-01)
+- [x] 05-01-PLAN.md — frozen-mode runtime plumbing: resolve_es_home + inject_es_config + DEVNULL subprocess fix + unit tests (PKG-01)
 **Wave 2** *(blocked on Wave 1)*:
 - [ ] 05-02-PLAN.md — nitrofind.spec + scripts/build_dist.py + manual clean-machine smoke test checkpoint (PKG-01)
 
