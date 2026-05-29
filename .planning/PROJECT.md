@@ -20,9 +20,9 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - [x] Result detail view renders the full scraped article text inline, within the app — Validated in Phase 4: desktop-ui
 - [x] PyQt native desktop UI with a fluid, modern feel comparable to a browser search experience — Validated in Phase 4: desktop-ui
 
-### Active
+### Validated
 
-- [ ] Application packaged as standalone executable (Phase 5)
+- [x] Application packaged as standalone executable — PyInstaller onedir bundle + Elasticsearch alongside, distributable zip, no Python/Java required on end-user machine — Validated in Phase 5: packaging-distribution
 
 ### Out of Scope
 
@@ -76,4 +76,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 — Phase 4 complete, full UI delivered and human-verified*
+*Last updated: 2026-05-29 — Phase 5 complete, NitroFind packaged as standalone distributable Windows executable*
