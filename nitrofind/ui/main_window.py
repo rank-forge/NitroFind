@@ -39,6 +39,7 @@ directly and call MainWindow(client) in on_es_ready().
 
 from __future__ import annotations
 
+import html
 import logging
 
 from PyQt6.QtWidgets import (
@@ -414,9 +415,15 @@ class MainWindow(QMainWindow):
         if result is None:
             return
         body_text = result.body if result.body else result.excerpt
+        # WR-01: HTML-escape untrusted fields before interpolation into setHtml.
+        # highlight_title/highlight_body are intentionally tagged with <b> by ES
+        # and must NOT be escaped; plain-text fallback fields (title, source_domain,
+        # url, body/excerpt) come from scraped content and must be escaped to prevent
+        # layout corruption from angle brackets, ampersands, or partial HTML tags.
         self._detail_pane.setHtml(
-            f"<h2 style='font-size:14pt'>{result.title}</h2>"
-            f"<p style='color:#80cbc4;font-size:9pt'>{result.source_domain} · {result.url}</p>"
+            f"<h2 style='font-size:14pt'>{html.escape(result.title)}</h2>"
+            f"<p style='color:#80cbc4;font-size:9pt'>"
+            f"{html.escape(result.source_domain)} · {html.escape(result.url)}</p>"
             f"<hr>"
-            f"<p style='font-size:10pt;line-height:1.5'>{body_text}</p>"
+            f"<p style='font-size:10pt;line-height:1.5'>{html.escape(body_text)}</p>"
         )

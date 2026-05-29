@@ -35,6 +35,7 @@ Anti-patterns avoided:
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import TYPE_CHECKING
 
@@ -90,9 +91,12 @@ def _result_to_html(result: "ArticleResult") -> str:
     else:
         excerpt = result.excerpt
 
+    # WR-01: source_domain is a plain-text scraped value (never ES-highlighted)
+    # and must be HTML-escaped. title/excerpt may contain intentional <b> tags
+    # from ES highlighter and must NOT be escaped.
     return (
         f"<b style='font-size:11pt'>{title}</b>"
-        f"<br><span style='color:#80cbc4;font-size:9pt'>{result.source_domain}</span>"
+        f"<br><span style='color:#80cbc4;font-size:9pt'>{html.escape(result.source_domain)}</span>"
         f"<br><span style='font-size:9pt'>{excerpt}</span>"
     )
 
