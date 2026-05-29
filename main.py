@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import QApplication
 from elasticsearch import Elasticsearch
 from qt_material import apply_stylesheet
 
-from nitrofind.es_manager import ES_URL, ESHealthWorker, validate_es_home
+from nitrofind.es_manager import ES_URL, ESHealthWorker, inject_es_config, resolve_es_home, validate_es_home
 from nitrofind.es_schema import ensure_index
 from nitrofind.ui.loading_window import LoadingWindow
 from nitrofind.ui.main_window import MainWindow
@@ -47,13 +47,44 @@ def main() -> None:
     functions can update the active worker reference across Retry cycles.
     """
     # ------------------------------------------------------------------
+    # PKG-01: Guard sys.stdout/stderr against None in windowed frozen mode.
+    # PyInstaller console=False sets these streams to None; logging.basicConfig
+    # and sys.stderr.write both raise AttributeError if the stream is None.
+    # This guard must come BEFORE logging.basicConfig and any sys.stderr write.
+    # Source: PATTERNS.md "main.py insertion point 2"
+    # ------------------------------------------------------------------
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")
+
+    # ------------------------------------------------------------------
     # Step 1: Validate ES_HOME BEFORE constructing any Qt object.
     # A ValueError here exits with a stderr message and non-zero status.
     # No QApplication is created, so no UI window can flash (T-04-01).
     # ------------------------------------------------------------------
     logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 
-    es_home_raw = os.environ.get("ES_HOME")
+    es_home_raw = resolve_es_home()  # PKG-01: frozen-mode resolves from sys.executable; dev-mode reads ES_HOME
+
+    # ------------------------------------------------------------------
+    # PKG-01: Inject NitroFind's config into the bundled ES directory BEFORE
+    # validate_es_home and BEFORE ESHealthWorker.start(). Without injection,
+    # ES 8.x boots with security-enabled defaults — TLS + auth — which causes
+    # the cluster health probe to fail with SSL/auth errors (Pitfall 3).
+    # In frozen mode, config_src resolves to sys._MEIPASS/config/;
+    # in dev mode, to <repo>/config/ (os.path.dirname(__file__) relative).
+    # ------------------------------------------------------------------
+    if getattr(sys, "frozen", False):
+        config_src = os.path.join(sys._MEIPASS, "config")  # type: ignore[attr-defined]
+    else:
+        config_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config")
+
+    if es_home_raw:
+        try:
+            inject_es_config(es_home_raw, config_src)
+        except OSError as exc:
+            logger.warning("inject_es_config failed: %s", exc)
     try:
         es_home = validate_es_home(es_home_raw)
     except ValueError as exc:
