@@ -161,9 +161,15 @@ def shutdown_es(process: subprocess.Popen) -> None:
         return  # already exited
 
     if sys.platform == "win32":
-        # Pitfall 1: On Windows, terminate() calls TerminateProcess (forceful).
-        # CTRL_BREAK_EVENT gives ES a chance to flush translog before dying.
-        # Requires CREATE_NEW_PROCESS_GROUP at Popen creation time.
+        # WR-02 known limitation: _start_process uses shell=True on Windows,
+        # which spawns cmd.exe /c elasticsearch.bat. CREATE_NEW_PROCESS_GROUP
+        # applies to cmd.exe; CTRL_BREAK_EVENT is forwarded to the cmd.exe
+        # process group but cmd.exe's delivery of the signal to its Java child
+        # is not guaranteed. The ES JVM may or may not receive it, so translog
+        # flush before shutdown is unreliable. The 10-second process.wait()
+        # timeout + process.kill() below is the actual termination mechanism.
+        # A proper fix (shell=False with explicit cmd.exe invocation, or using
+        # taskkill /F /T /PID) is deferred to a future hardening pass.
         process.send_signal(signal.CTRL_BREAK_EVENT)
     else:
         process.terminate()
