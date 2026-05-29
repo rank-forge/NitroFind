@@ -55,13 +55,21 @@ def test_start_process_uses_devnull_handles(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_start_process_win32_branch(tmp_path, monkeypatch):
-    """PKG-01: win32 branch sets creationflags=CREATE_NEW_PROCESS_GROUP and shell=True."""
+    """PKG-01: win32 branch sets creationflags=CREATE_NEW_PROCESS_GROUP and shell=True.
+
+    CREATE_NEW_PROCESS_GROUP only exists on Windows; use a sentinel int on POSIX hosts
+    so the test can run cross-platform.  The value 512 matches the Windows constant.
+    """
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     (bin_dir / "elasticsearch").touch()
     (bin_dir / "elasticsearch.bat").touch()
 
     monkeypatch.setattr(sys, "platform", "win32")
+    # CREATE_NEW_PROCESS_GROUP is Windows-only; provide a sentinel so the
+    # attribute lookup inside _start_process doesn't fail on Linux hosts.
+    CREATE_NEW_PROCESS_GROUP_VALUE = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 512)
+    monkeypatch.setattr(subprocess, "CREATE_NEW_PROCESS_GROUP", CREATE_NEW_PROCESS_GROUP_VALUE, raising=False)
 
     with patch("nitrofind.es_manager.subprocess.Popen") as mock_popen:
         mock_popen.return_value = MagicMock()
@@ -69,7 +77,7 @@ def test_start_process_win32_branch(tmp_path, monkeypatch):
         worker._start_process()
 
     call_kwargs = mock_popen.call_args[1]
-    assert call_kwargs.get("creationflags") == subprocess.CREATE_NEW_PROCESS_GROUP, \
+    assert call_kwargs.get("creationflags") == CREATE_NEW_PROCESS_GROUP_VALUE, \
         "win32 branch must set creationflags=CREATE_NEW_PROCESS_GROUP"
     assert call_kwargs.get("shell") is True, \
         "win32 branch must set shell=True (required for .bat execution)"

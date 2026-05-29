@@ -2,6 +2,8 @@
 nitrofind.es_manager — Elasticsearch subprocess lifecycle manager.
 
 Exports:
+  resolve_es_home    — frozen-mode ES path resolver (PKG-01)
+  inject_es_config   — writes elasticsearch.yml + jvm.options.d into bundled ES dir (PKG-01)
   validate_es_home   — validates ES_HOME path before exec (T-02-01, T-02-02)
   shutdown_es        — cross-platform graceful ES shutdown helper (INFRA-03)
   ESHealthWorker     — QThread worker: starts ES, polls health, emits signals (INFRA-02, INFRA-04)
@@ -11,6 +13,7 @@ Requirement coverage:
   INFRA-03: shutdown_es terminates ES gracefully (POSIX SIGTERM / Windows CTRL_BREAK_EVENT);
             falls back to kill() after 10s timeout
   INFRA-04: ESHealthWorker emits es_ready() or es_failed(str) exactly once per run()
+  PKG-01: resolve_es_home/inject_es_config support frozen-mode launch; _start_process DEVNULL hardens windowed subprocess
 
 Security mitigations:
   T-02-01 (path traversal): validate_es_home enforces isdir + isfile before exec
@@ -19,10 +22,12 @@ Security mitigations:
 """
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from elasticsearch import Elasticsearch
@@ -33,6 +38,69 @@ from elasticsearch import Elasticsearch
 # ---------------------------------------------------------------------------
 
 ES_URL = "http://localhost:9200"
+
+
+# ---------------------------------------------------------------------------
+# Frozen-mode path resolution (PKG-01)
+# ---------------------------------------------------------------------------
+
+def resolve_es_home() -> str | None:
+    """Compute the Elasticsearch home path for the current runtime mode.
+
+    In frozen (PyInstaller) mode (getattr(sys, 'frozen', False) is True),
+    the Elasticsearch directory lives as a sibling of the launcher exe:
+
+        NitroFind.exe
+        elasticsearch-8.18.0/   <- resolved from sys.executable parent glob
+
+    Falls back to the ES_HOME environment variable in dev mode (non-frozen).
+    Returns None if no sibling elasticsearch-8.* directory is found (frozen)
+    or if ES_HOME is unset (dev); validate_es_home() will raise ValueError on None.
+
+    # Source: pyinstaller.org/en/stable/runtime-information.html
+    """
+    if getattr(sys, "frozen", False):
+        launcher_dir = Path(sys.executable).parent
+        candidates = sorted(launcher_dir.glob("elasticsearch-8.*"))
+        return str(candidates[0]) if candidates else None
+    return os.environ.get("ES_HOME")
+
+
+# ---------------------------------------------------------------------------
+# Config injection (PKG-01)
+# ---------------------------------------------------------------------------
+
+def inject_es_config(es_home: str, config_src_dir: str) -> None:
+    """Copy NitroFind's elasticsearch.yml and jvm.options into the bundled ES config dir.
+
+    Idempotent: overwrites both files on every call, ensuring the NitroFind-controlled
+    config is always in place before ESHealthWorker starts the ES subprocess.
+    Calling this function twice produces identical results; the second call is safe.
+
+    Writes:
+      {es_home}/config/elasticsearch.yml    <- from {config_src_dir}/elasticsearch.yml
+      {es_home}/config/jvm.options.d/nitrofind.options  <- from {config_src_dir}/jvm.options
+
+    Creates jvm.options.d/ via os.makedirs(..., exist_ok=True) if it does not exist.
+
+    # Source: elastic.co/guide/en/elasticsearch/reference/8.19/advanced-configuration.html
+    #         (jvm.options.d/ file semantics and ES_JAVA_OPTS caveat)
+    """
+    es_config = os.path.join(es_home, "config")
+
+    # Write elasticsearch.yml (xpack.security.* = false — PKG-01 Pitfall 3 mitigation)
+    shutil.copy(
+        os.path.join(config_src_dir, "elasticsearch.yml"),
+        os.path.join(es_config, "elasticsearch.yml"),
+    )
+
+    # Write jvm.options.d/nitrofind.options (heap + perf tuning)
+    jvm_dir = os.path.join(es_config, "jvm.options.d")
+    os.makedirs(jvm_dir, exist_ok=True)
+    shutil.copy(
+        os.path.join(config_src_dir, "jvm.options"),
+        os.path.join(jvm_dir, "nitrofind.options"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -194,9 +262,17 @@ class ESHealthWorker(QThread):
         on Windows where it is required to execute .bat files (CR-01).
         Cross-platform — Pitfall 1: CREATE_NEW_PROCESS_GROUP on win32 required so
         shutdown_es() can send CTRL_BREAK_EVENT for graceful Windows shutdown.
+        PKG-01 Pitfall 2: stdin/stdout/stderr set to DEVNULL to prevent [WinError 6]
+        in windowed frozen mode where sys.stdout/stderr are None.
+        PKG-01 Pitfall 7: close_fds=True prevents handle lock on binary update.
         """
         es_bin = _es_binary_path(self._es_home)  # CR-01: platform-correct binary path
-        kwargs: dict = {}
+        kwargs: dict = {
+            "stdin": subprocess.DEVNULL,   # PKG-01 Pitfall 2
+            "stdout": subprocess.DEVNULL,  # PKG-01 Pitfall 2
+            "stderr": subprocess.DEVNULL,  # PKG-01 Pitfall 2
+            "close_fds": True,             # PKG-01 Pitfall 7
+        }
         if sys.platform == "win32":
             kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
             kwargs["shell"] = True  # CR-01: required to execute .bat files on Windows
