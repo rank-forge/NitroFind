@@ -88,6 +88,11 @@ def inject_es_config(es_home: str, config_src_dir: str) -> None:
     """
     es_config = os.path.join(es_home, "config")
 
+    # Create config/ and jvm.options.d/ before any writes (CR-02: makedirs must
+    # precede shutil.copy so config/ is created even when es_home is bare).
+    jvm_dir = os.path.join(es_config, "jvm.options.d")
+    os.makedirs(jvm_dir, exist_ok=True)
+
     # Write elasticsearch.yml (xpack.security.* = false — PKG-01 Pitfall 3 mitigation)
     shutil.copy(
         os.path.join(config_src_dir, "elasticsearch.yml"),
@@ -95,8 +100,6 @@ def inject_es_config(es_home: str, config_src_dir: str) -> None:
     )
 
     # Write jvm.options.d/nitrofind.options (heap + perf tuning)
-    jvm_dir = os.path.join(es_config, "jvm.options.d")
-    os.makedirs(jvm_dir, exist_ok=True)
     shutil.copy(
         os.path.join(config_src_dir, "jvm.options"),
         os.path.join(jvm_dir, "nitrofind.options"),
