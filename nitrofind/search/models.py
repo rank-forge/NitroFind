@@ -24,6 +24,36 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+# ---------------------------------------------------------------------------
+# Safe type-conversion helpers (WR-04)
+# ---------------------------------------------------------------------------
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    """Convert value to float, returning default on TypeError/ValueError.
+
+    Guards from_es_hit against malformed ES data (e.g. _score="unknown")
+    that would otherwise propagate as ValueError through the list comprehension
+    in _SearchWorker.run() and cause the entire search to fail.
+    """
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(value: object, default: int = 0) -> int:
+    """Convert value to int via float, returning default on TypeError/ValueError.
+
+    Uses int(float(value)) so string-encoded floats like "3.5" are handled
+    gracefully (truncated to 3) rather than raising ValueError as int("3.5")
+    would. Guards from_es_hit against malformed word_count values.
+    """
+    try:
+        return int(float(value))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
 @dataclass
 class ArticleResult:
     """Single search result returned by SearchEngine.
@@ -71,10 +101,11 @@ class ArticleResult:
         """
         src = hit.get("_source", {})
         highlights = hit.get("highlight", {})
-        raw_score = hit.get("_score")
-        score = float(raw_score) if raw_score is not None else 0.0
-        raw_word_count = src.get("word_count")
-        word_count = int(raw_word_count) if raw_word_count is not None else 0
+        # WR-04: use safe helpers so non-numeric strings (e.g. "unknown", "")
+        # or mixed types from schema evolution/index corruption never raise
+        # ValueError and propagate as a full search failure.
+        score = _safe_float(hit.get("_score"), 0.0)
+        word_count = _safe_int(src.get("word_count"), 0)
         return cls(
             title=src.get("title", ""),
             url=src.get("url", ""),
