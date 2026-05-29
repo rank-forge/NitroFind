@@ -303,11 +303,19 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"NitroFind — {query}")
         self._status_label.setText("Searching…")
 
+        # WR-02: wrap error_callback with the same sequence guard as success
+        # callback. Without this, a slow failed search #1 can overwrite a
+        # faster successful search #2's results with "Search failed." status.
+        def _guarded_error(msg: str, s: int = seq) -> None:
+            if s != self._current_seq:
+                return  # stale — discard (T-04-05)
+            self._on_search_error(msg)
+
         self._engine.search(
             query,
             filters=self._filter_sidebar.collect_filters(),
             callback=lambda results, took, s=seq: self._on_results(results, took, s),
-            error_callback=self._on_search_error,
+            error_callback=_guarded_error,
         )
 
     # ------------------------------------------------------------------
