@@ -286,6 +286,35 @@ class WikipediaScraper:
         production_start = parse_year(raw_production)
         production_end = parse_year(str(infobox.get("production_end") or ""))
 
+        # WR-03: normalize raw body_style infobox value to the controlled vocabulary
+        # used by FilterSidebar.BODY_STYLES. Wikipedia infobox values like "2-door coupe"
+        # or "4-door saloon" are lowercase multi-word strings; the ES term query for
+        # filter selections like "Coupe" or "Sedan" would never match without this mapping.
+        _BODY_STYLE_MAP = {
+            "coupe": "Coupe",
+            "coupé": "Coupe",
+            "2-door": "Coupe",
+            "sedan": "Sedan",
+            "saloon": "Sedan",
+            "convertible": "Convertible",
+            "cabriolet": "Convertible",
+            "roadster": "Convertible",
+            "suv": "SUV",
+            "crossover": "SUV",
+            "hatchback": "Hatchback",
+            "wagon": "Wagon",
+            "estate": "Wagon",
+            "pickup": "Pickup",
+            "truck": "Pickup",
+            "van": "Van",
+        }
+        raw_body_style = (
+            str(infobox.get("body_style") or infobox.get("Body style") or "").lower()
+        )
+        normalized_body_style = next(
+            (v for k, v in _BODY_STYLE_MAP.items() if k in raw_body_style), ""
+        )
+
         # Build document — ONLY include fields from CAR_ARTICLES_MAPPING.properties
         # Extra keys are silently dropped by dynamic:"false" but the contract is to send
         # only mapped fields (Pitfall 5 defence)
@@ -309,9 +338,7 @@ class WikipediaScraper:
             ),
             "production_start": production_start,  # int or None — ES accepts null
             "production_end": production_end,
-            "body_style": str(
-                infobox.get("body_style") or infobox.get("Body style") or ""
-            ),
+            "body_style": normalized_body_style,  # WR-03: normalized to BODY_STYLES vocab
             "era_bucket": compute_era_bucket(production_start),  # L-07
             "country_of_origin": str(
                 infobox.get("origin") or infobox.get("country") or ""
