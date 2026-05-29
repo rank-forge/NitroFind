@@ -113,4 +113,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Data Pipeline (Scraper + Indexer) | 5/5 | Complete   | 2026-05-15 |
 | 3. Search Logic & Relevance Scoring | 3/3 | Human verification needed | 2026-05-28 |
 | 4. Desktop UI | 0/4 | Not started | - |
-| 5. Packaging & Distribution | 0/2 | Not started | - |
+| 5. Packaging & Distribution | 0/2 | Planned | - |
