@@ -223,13 +223,18 @@ class MainWindow(QMainWindow):
         self._search_bar.textChanged.connect(self._debounce_timer.start)
         self._debounce_timer.timeout.connect(self._execute_search)
 
-        # Filter checkboxes also trigger debounce (SRCH-04)
+        # Filter checkboxes also trigger debounce (SRCH-04).
+        # CR-01: use lambda _ to discard the int emitted by stateChanged.
+        # QTimer.start(msec) permanently replaces the stored interval, so
+        # connecting stateChanged directly to start would corrupt the 300ms
+        # debounce on every checkbox interaction (start(2) on check, start(0)
+        # on uncheck). The no-arg form start() restarts with the stored interval.
         for cb in self._filter_sidebar.manufacturer_checks.values():
-            cb.stateChanged.connect(self._debounce_timer.start)
+            cb.stateChanged.connect(lambda _: self._debounce_timer.start())
         for cb in self._filter_sidebar.era_checks.values():
-            cb.stateChanged.connect(self._debounce_timer.start)
+            cb.stateChanged.connect(lambda _: self._debounce_timer.start())
         for cb in self._filter_sidebar.body_style_checks.values():
-            cb.stateChanged.connect(self._debounce_timer.start)
+            cb.stateChanged.connect(lambda _: self._debounce_timer.start())
 
         # Result selection: arrow-key hover and click both update detail pane
         self._result_list.currentRowChanged.connect(self._on_result_hovered)
