@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Web Interface
 status: planning
-last_updated: "2026-06-03T13:28:46.540Z"
+last_updated: "2026-06-03"
 last_activity: 2026-06-03
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Planning next milestone (v1.1)
+**Current focus:** v1.1 — replacing PyQt6 UI with Flask web server. Roadmap defined. Ready to plan Phase 6.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 6 — Server Lifecycle & Cleanup (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-03 — Milestone v1.1 started
+Status: Roadmap defined — awaiting `/gsd-plan-phase 6`
+Last activity: 2026-06-03 — v1.1 roadmap created (Phases 6–8)
+
+Progress: `[ ] [ ] [ ]` (0/3 phases)
 
 ## Performance Metrics
 
@@ -66,6 +68,7 @@ Recent decisions affecting current work:
 - Phase 1 Plan 04: State dict pattern (state = {"worker": None}) used in main.py so closures can replace the active ESHealthWorker on Retry without nonlocal
 - Phase 1 Plan 04: ES cold-start deadline extended from 60s (plan spec) to 180s after observing ~120s actual cold-start time on target machine
 - Phase 3: function_score uses Gaussian recency decay + log(word_count) modifier + has_infobox boost; score_mode: sum, boost_mode: multiply
+- v1.1: PyQt6 UI removed; Flask dev server replaces it — `python main.py` starts ES + Flask, browser at localhost:5000
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ Items acknowledged and deferred at milestone close on 2026-06-03:
 
 ## Session Continuity
 
-Last session: 2026-05-16T00:04:15.195Z
-Stopped at: context exhaustion at 76% (2026-05-16)
+Last session: 2026-06-03
+Stopped at: v1.1 roadmap defined
 Resume file: None
