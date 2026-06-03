@@ -1,36 +1,35 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: milestone_complete
-stopped_at: context exhaustion at 76% (2026-05-16)
-last_updated: "2026-05-29T13:37:41.914Z"
-last_activity: 2026-05-29 -- Phase 05 execution started
+milestone: v1.1
+milestone_name: next
+status: planning_next_milestone
+last_updated: "2026-06-03T13:00:00.000Z"
+last_activity: 2026-06-03 -- v1.0 milestone archived
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 16
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-12)
+See: .planning/PROJECT.md (updated 2026-06-03)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Phase 05 — packaging-distribution
+**Current focus:** Planning next milestone (v1.1)
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-05-29
+Phase: —
+Plan: —
+Status: v1.0 archived — planning next milestone
+Last activity: 2026-06-03
 
-Progress: [██████████] 100%
+Progress: [          ] 0% (v1.1 not yet planned)
 
 ## Performance Metrics
 
@@ -76,9 +75,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 2: Blog parser CSS selectors (Car and Driver, Hagerty, Hemmings, Road & Track) need manual HTML inspection before writing parsers — selector stability is MEDIUM confidence
-- Phase 5: Windows NSIS + bundled ES directory is an uncommon pattern — may need research spike if targeting Windows as primary distribution platform
-- Phase 3: function_score weights need empirical tuning against real indexed data — weights from literature are a starting point only
+- function_score weights need empirical tuning against real indexed data — weights from literature are starting points (carry to v1.1)
+- Windows clean-machine smoke test not yet run — carry to v1.1 validation phase
 
 ### Quick Tasks Completed
 
@@ -88,9 +86,15 @@ None yet.
 
 ## Deferred Items
 
+Items acknowledged and deferred at milestone close on 2026-06-03:
+
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| quick_task | 260513-qjd-commit-review-fixes-from-01-review-md-re | missing (work done at commit a5f8dce, tracking record stale) | 2026-06-03 |
+| uat_gap | phase-04 / 04-HUMAN-UAT.md | resolved (0 pending scenarios — tool over-counts resolved items) | 2026-06-03 |
+| verification_gap | phase-03 / 03-VERIFICATION.md | human_needed — 3 live-ES ranking quality checks require real indexed data | 2026-06-03 |
+| verification_gap | phase-04 / 04-VERIFICATION.md | human_needed — all 5 UAT scenarios approved in 04-HUMAN-UAT.md; VERIFICATION.md not updated to passed | 2026-06-03 |
+| verification_gap | phase-05 / 05-VERIFICATION.md | human_needed — Windows clean-machine smoke test requires native Windows + no Python/Java | 2026-06-03 |
 
 ## Session Continuity
 
