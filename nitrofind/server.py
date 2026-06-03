@@ -3,14 +3,19 @@ nitrofind.server — Flask application, routes, and background ES startup machin
 
 Exports:
   app                 — Flask WSGI application object
-  state               — Shared mutable state dict (ready, process, es_health, doc_count, index_size_bytes)
+  state               — Shared mutable state dict (ready, process, es_health, doc_count,
+                        index_size_bytes, es_client)
   start_es_background — Spawn daemon thread that starts ES subprocess and polls cluster health
   index               — GET / route: NitroFind placeholder HTML
   api_status          — GET /api/status route: 503 warmup guard / 200 health JSON
+  api_search          — GET /api/search route: ranked full-text search with optional filters
+  _result_to_api_dict — Serialize ArticleResult to the API-01 wire format
 
 Requirement coverage:
   SRVR-02: Flask listens on localhost:5000; PORT overridable via env var
   SRVR-03: HTTP 503 {"status": "starting"} during ES warmup
+  API-01:  GET /api/search returns JSON array with title, url, source_domain, excerpt, score, took_ms
+  API-02:  GET /api/search accepts manufacturer, era_bucket, body_style filter params
   API-03:  GET /api/status returns JSON with es_health, doc_count, index_size_bytes
   API-04:  GET / serves NitroFind placeholder HTML
 
@@ -49,6 +54,7 @@ state: dict = {
     "es_health": None,      # str | None: "green" | "yellow" | "red"
     "doc_count": 0,
     "index_size_bytes": 0,
+    "es_client": None,      # Phase 7: Elasticsearch instance, set by _es_health_poller
 }
 
 # ---------------------------------------------------------------------------
@@ -157,6 +163,7 @@ def _es_health_poller(es_home: str) -> None:
             if resp["status"] in ("green", "yellow"):  # D-05
                 state["es_health"] = resp["status"]
                 state["doc_count"], state["index_size_bytes"] = _fetch_index_stats(client)
+                state["es_client"] = client  # Phase 7: single writer — GIL-safe (same rationale as ready flag, T-06-06)
                 state["ready"] = True
                 return
         except Exception as exc:
