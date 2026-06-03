@@ -1,26 +1,23 @@
 """
-Unit tests for nitrofind.es_manager — INFRA-02, INFRA-03, INFRA-04 coverage.
+Unit tests for nitrofind.es_manager — INFRA-02, INFRA-03 coverage.
 
 Test strategy:
-  - Call worker.run() directly (synchronously) — never worker.start()
-  - Patch subprocess.Popen and nitrofind.es_manager.Elasticsearch
-  - No live ES or Qt event loop required
+  - Call shutdown_es() directly — no QThread, no Qt event loop
+  - Patch subprocess.Popen where needed
+  - No live ES or Qt required
 
 Requirement coverage:
-  INFRA-02: ESHealthWorker starts ES subprocess; validate_es_home validates ES_HOME
-  INFRA-03: shutdown_es graceful termination + kill fallback
-  INFRA-04: ESHealthWorker emits es_ready on healthy / es_failed on process death
+  INFRA-02: validate_es_home validates ES_HOME path
+  INFRA-03: shutdown_es terminates ES gracefully (POSIX SIGTERM); falls back to
+            kill() after 10s timeout
 """
 
-import os
-import signal
 import subprocess
-import sys
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, call
 
 import pytest
 
-from nitrofind.es_manager import ESHealthWorker, shutdown_es, validate_es_home
+from nitrofind.es_manager import shutdown_es, validate_es_home
 
 
 # ---------------------------------------------------------------------------
@@ -43,24 +40,18 @@ def test_missing_es_home():
 
 
 # ---------------------------------------------------------------------------
-# INFRA-03: graceful shutdown
+# INFRA-03: graceful shutdown (Linux/WSL only — Windows branch removed)
 # ---------------------------------------------------------------------------
 
 def test_shutdown_graceful():
-    """shutdown_es calls terminate (POSIX) or send_signal(CTRL_BREAK_EVENT) (win32),
-    then wait(timeout=10). Assert the correct branch for the current platform."""
+    """shutdown_es sends SIGTERM then waits (Linux/WSL only)."""
     mock_process = MagicMock()
     mock_process.poll.return_value = None  # process is alive
 
     shutdown_es(mock_process)
 
-    if sys.platform == "win32":
-        mock_process.send_signal.assert_called_once_with(signal.CTRL_BREAK_EVENT)
-        mock_process.terminate.assert_not_called()
-    else:
-        mock_process.terminate.assert_called_once()
-        mock_process.send_signal.assert_not_called()
-
+    mock_process.terminate.assert_called_once()
+    mock_process.send_signal.assert_not_called()
     mock_process.wait.assert_called_once_with(timeout=10)
 
 
@@ -78,57 +69,3 @@ def test_shutdown_kills_on_timeout():
     mock_process.kill.assert_called_once()
     # wait called twice: first with timeout=10, second bare wait()
     assert mock_process.wait.call_count == 2
-
-
-# ---------------------------------------------------------------------------
-# INFRA-04: ESHealthWorker signal emission
-# ---------------------------------------------------------------------------
-
-def test_worker_emits_ready():
-    """ESHealthWorker.run() emits es_ready when cluster.health() returns yellow."""
-    ready_calls = []
-    failed_calls = []
-
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None  # process alive
-
-    mock_health_resp = {"status": "yellow"}
-    mock_client = MagicMock()
-    mock_client.cluster.health.return_value = mock_health_resp
-
-    with patch("nitrofind.es_manager.subprocess.Popen", return_value=mock_process), \
-         patch("nitrofind.es_manager.Elasticsearch", return_value=mock_client):
-
-        worker = ESHealthWorker("/fake/es_home")
-        worker.es_ready.connect(lambda: ready_calls.append(True))
-        worker.es_failed.connect(lambda reason: failed_calls.append(reason))
-
-        worker.run()
-
-    assert len(ready_calls) == 1, f"Expected 1 es_ready emission, got {len(ready_calls)}"
-    assert len(failed_calls) == 0, f"Expected no es_failed, got {failed_calls}"
-
-
-def test_worker_emits_failed():
-    """ESHealthWorker.run() emits es_failed when process.poll() returns non-None."""
-    ready_calls = []
-    failed_calls = []
-
-    mock_process = MagicMock()
-    mock_process.poll.return_value = 1  # process exited (non-zero)
-
-    mock_client = MagicMock()
-
-    with patch("nitrofind.es_manager.subprocess.Popen", return_value=mock_process), \
-         patch("nitrofind.es_manager.Elasticsearch", return_value=mock_client):
-
-        worker = ESHealthWorker("/fake/es_home")
-        worker.es_ready.connect(lambda: ready_calls.append(True))
-        worker.es_failed.connect(lambda reason: failed_calls.append(reason))
-
-        worker.run()
-
-    assert len(ready_calls) == 0, f"Expected no es_ready, got {ready_calls}"
-    assert len(failed_calls) == 1, f"Expected 1 es_failed emission, got {len(failed_calls)}"
-    assert "exited unexpectedly" in failed_calls[0], \
-        f"Expected 'exited unexpectedly' in message, got: {failed_calls[0]!r}"
