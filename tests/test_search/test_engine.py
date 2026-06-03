@@ -23,14 +23,26 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from PyQt6.QtWidgets import QApplication
+try:
+    import PyQt6  # noqa: F401
+    PYQT6_AVAILABLE = True
+except ImportError:
+    PYQT6_AVAILABLE = False
 
-# Ensure a QApplication exists (required for QObject/QRunnable/QThreadPool)
-_app = QApplication.instance() or QApplication(sys.argv)
+pytestmark = pytest.mark.skipif(
+    not PYQT6_AVAILABLE,
+    reason="PyQt6 not installed",
+)
 
-from nitrofind.search.engine import SearchEngine, _SearchSignals, _SearchWorker
-from nitrofind.search.models import ArticleResult
-from nitrofind.es_manager import ES_URL
+if PYQT6_AVAILABLE:
+    from PyQt6.QtWidgets import QApplication
+
+    # Ensure a QApplication exists (required for QObject/QRunnable/QThreadPool)
+    _app = QApplication.instance() or QApplication(sys.argv)
+
+    from nitrofind.search.engine import SearchEngine, _SearchSignals, _SearchWorker
+    from nitrofind.search.models import ArticleResult
+    from nitrofind.es_manager import ES_URL
 
 
 # ---------------------------------------------------------------------------
