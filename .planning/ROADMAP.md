@@ -43,7 +43,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Wave 1**
 
-  - [ ] 06-01-PLAN.md — Add Flask, strip es_manager.py of Qt/Windows/ESHealthWorker, update its tests
+  - [x] 06-01-PLAN.md — Add Flask, strip es_manager.py of Qt/Windows/ESHealthWorker, update its tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
