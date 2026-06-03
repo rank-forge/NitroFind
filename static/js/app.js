@@ -10,7 +10,7 @@
  *
  * Requirements covered:
  *   SRCH-01  debounced search (300ms, no button press)
- *   SRCH-02  highlighted result rows (ES <b> tags in excerpt via innerHTML)
+ *   SRCH-02  highlighted result rows (ES <b> tags in excerpt, excerpt-only)
  *   SRCH-03  article view (textContent body, no new tab)
  *   SRCH-04  persistent filters (module-level state, re-run on change)
  *   UIPL-02  result count + query time display
