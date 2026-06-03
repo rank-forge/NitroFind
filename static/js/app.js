@@ -62,15 +62,18 @@ function transitionTo(newState) {
 // Debounced search input handler (SRCH-01)
 // ---------------------------------------------------------------------------
 
-searchInput.addEventListener("input", () => {
+function handleSearchInput(input) {
   clearTimeout(debounceTimer);
-  const q = searchInput.value.trim();
+  const q = input.value.trim();
   if (!q) {
     transitionTo("home");
     return;
   }
   debounceTimer = setTimeout(() => runSearch(q), DEBOUNCE_MS);
-});
+}
+
+searchInput.addEventListener("input", () => handleSearchInput(searchInput));
+searchInputResults.addEventListener("input", () => handleSearchInput(searchInputResults));
 
 // ---------------------------------------------------------------------------
 // Search fetch with AbortController (SRCH-01, Pitfall 4 stale-result race)
@@ -93,7 +96,9 @@ async function runSearch(q) {
     const resp = await fetch(`/api/search?${params}`, {
       signal: abortController.signal,
     });
+    if (!resp.ok) return;
     const results = await resp.json();
+    if (!Array.isArray(results)) return;
     currentResults = results;
     selectedIndex = -1;   // reset keyboard cursor on new results
     renderResults(results);
@@ -206,6 +211,7 @@ document.addEventListener("keydown", (e) => {
   // Escape works from any state
   if (e.key === "Escape") {
     searchInput.value = "";
+    searchInputResults.value = "";
     transitionTo("home");
     selectedIndex = -1;
   }

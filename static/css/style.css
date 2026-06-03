@@ -222,10 +222,11 @@ body[data-state="article"] .article-view { display: block; }
   border-color: var(--text-secondary);
 }
 
-/* Keyboard selected highlight (D-11) */
+/* Keyboard selected highlight (D-11); extra left-border compensated to avoid 1px layout jitter */
 .result-item.selected {
   background-color: var(--bg-surface);
   border-left: 2px solid var(--accent);
+  padding-left: calc(1rem - 1px);
 }
 
 .result-title {

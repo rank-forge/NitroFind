@@ -114,6 +114,7 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
         "url": result.url,
         "source_domain": result.source_domain,
         "excerpt": excerpt,
+        "body": result.body,
         "score": result.score,
         "took_ms": took_ms,
     }
@@ -161,7 +162,7 @@ def api_search():
         )
     except Exception as exc:
         logger.warning("Search error: %s: %s", type(exc).__name__, exc)
-        return {"error": "search_failed", "detail": str(exc)}, 500
+        return {"error": "search_failed", "detail": type(exc).__name__}, 500
 
     took_ms = resp.get("took", 0)
     results = [ArticleResult.from_es_hit(hit) for hit in resp["hits"]["hits"]]
