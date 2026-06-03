@@ -66,7 +66,11 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. `GET /api/search?q=mustang&manufacturer=Ford` narrows results to Ford articles using the existing `build_filter_clauses()` logic
   3. `GET /api/search?q=anything` while ES is still starting returns HTTP 503
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+**Wave 1**
+
+  - [ ] 07-01-PLAN.md — Extend state dict with es_client; TDD the /api/search route (ranked results, highlights, optional facet filters, 503 warmup guard)
 
 ### Phase 8: Browser Search UI
 
@@ -96,5 +100,5 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 4. Desktop UI | v1.0 | 4/4 | Complete | 2026-05-28 |
 | 5. Packaging & Distribution | v1.0 | 2/2 | Complete | 2026-05-29 |
 | 6. Server Lifecycle & Cleanup | v1.1 | 0/3 | Not started | - |
-| 7. Search REST API | v1.1 | 0/? | Not started | - |
+| 7. Search REST API | v1.1 | 0/1 | Not started | - |
 | 8. Browser Search UI | v1.1 | 0/? | Not started | - |
