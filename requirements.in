@@ -1,7 +1,6 @@
 # Source: CLAUDE.md stack; versions verified via pypi.org 2026-05-12
 elasticsearch==8.*
-PyQt6==6.11.0
-qt-material==2.17
+flask>=3.1
 requests>=2.32,<3
 mediawikiapi==1.3
 beautifulsoup4>=4.12,<5
