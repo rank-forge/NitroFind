@@ -51,7 +51,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-  - [ ] 06-03-PLAN.md — Rewrite main.py as Flask lifecycle entry point, delete nitrofind/ui/, CLEN-01 cleanup
+  - [x] 06-03-PLAN.md — Rewrite main.py as Flask lifecycle entry point, delete nitrofind/ui/, CLEN-01 cleanup
 
 **UI hint**: yes
 
