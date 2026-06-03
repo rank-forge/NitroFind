@@ -31,10 +31,12 @@ import subprocess
 import threading
 import time
 
-from flask import Flask
+from flask import Flask, jsonify, request
 from elasticsearch import Elasticsearch
 
 from nitrofind.es_manager import ES_URL, shutdown_es  # noqa: F401 (shutdown_es re-exported for main.py)
+from nitrofind.search.models import ArticleResult
+from nitrofind.search.query_builder import build_search_body, build_filter_clauses
 
 # ---------------------------------------------------------------------------
 # Module-level singletons
@@ -83,6 +85,82 @@ def api_status():
         "doc_count": state["doc_count"],
         "index_size_bytes": state["index_size_bytes"],
     }, 200
+
+
+def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
+    """Serialize one ArticleResult to the API-01 wire format.
+
+    Excerpt selection: use highlight_body[0] if ES returned a highlighted
+    fragment (contains <b> tags), otherwise fall back to plain _source excerpt.
+    This satisfies API-01's requirement that the excerpt contain ES highlight
+    tags when a match exists.
+
+    Args:
+        result:   ArticleResult instance from ArticleResult.from_es_hit().
+        took_ms:  ES response-level took value (ms). Same value for all items
+                  in a single response (Pitfall 5 resolution).
+
+    Returns:
+        dict with keys: title, url, source_domain, excerpt, score, took_ms.
+    """
+    excerpt = result.highlight_body[0] if result.highlight_body else result.excerpt
+    return {
+        "title": result.title,
+        "url": result.url,
+        "source_domain": result.source_domain,
+        "excerpt": excerpt,
+        "score": result.score,
+        "took_ms": took_ms,
+    }
+
+
+@app.route("/api/search")
+def api_search():
+    """GET /api/search — ranked full-text search with optional filters.
+
+    Requirement coverage:
+      API-01: returns JSON array with title, url, source_domain, excerpt, score, took_ms
+      API-02: accepts manufacturer, era_bucket, body_style filter params
+      SRVR-03: returns 503 while state["ready"] is False
+
+    Security mitigations:
+      T-07-01: q placed in multi_match.query value only — never interpolated as DSL key
+      T-07-02: filter params placed in term filter value fields via build_filter_clauses()
+      T-07-03: index="car_articles" is a hard-coded literal — never derived from user input
+      T-07-04: size clamped to MAX_RESULT_SIZE by build_search_body()
+      T-07-05: blank q guard returns [] before any ES call (prevents multi_match BadRequestError)
+      T-07-07: 503 guard runs before any state["es_client"] access
+    """
+    if not state["ready"]:
+        return {"status": "starting"}, 503
+
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify([])
+
+    filters = build_filter_clauses(
+        manufacturer=request.args.get("manufacturer") or None,
+        era_bucket=request.args.get("era_bucket") or None,
+        body_style=request.args.get("body_style") or None,
+    )
+    body = build_search_body(q, filters=filters)
+
+    try:
+        resp = state["es_client"].search(
+            index="car_articles",
+            query=body["query"],
+            highlight=body.get("highlight"),
+            source=body.get("_source"),   # 'source' not '_source' — known naming difference (Pitfall 1)
+            size=body.get("size", 20),
+            from_=body.get("from", 0),
+        )
+    except Exception as exc:
+        logger.warning("Search error: %s: %s", type(exc).__name__, exc)
+        return {"error": "search_failed", "detail": str(exc)}, 500
+
+    took_ms = resp.get("took", 0)
+    results = [ArticleResult.from_es_hit(hit) for hit in resp["hits"]["hits"]]
+    return jsonify([_result_to_api_dict(r, took_ms) for r in results])
 
 
 # ---------------------------------------------------------------------------
