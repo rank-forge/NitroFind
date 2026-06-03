@@ -15,8 +15,8 @@
 
 ### REST API
 
-- [ ] **API-01**: `GET /api/search?q={query}` returns a JSON array of ranked results — each with title, url, source_domain, excerpt (with ES highlight tags), score, took_ms
-- [ ] **API-02**: `GET /api/search` accepts optional filter params `manufacturer`, `era_bucket`, `body_style` that narrow results using the existing `build_filter_clauses()` logic
+- [x] **API-01**: `GET /api/search?q={query}` returns a JSON array of ranked results — each with title, url, source_domain, excerpt (with ES highlight tags), score, took_ms
+- [x] **API-02**: `GET /api/search` accepts optional filter params `manufacturer`, `era_bucket`, `body_style` that narrow results using the existing `build_filter_clauses()` logic
 - [ ] **API-03**: `GET /api/status` returns JSON with Elasticsearch health (green/yellow/red), document count, and index size
 - [ ] **API-04**: `GET /` serves the main HTML search page (single-page app entry point)
 
@@ -65,8 +65,8 @@
 | SRVR-02 | Phase 6 | Pending |
 | SRVR-03 | Phase 6 | Pending |
 | SRVR-04 | Phase 6 | Pending |
-| API-01 | Phase 7 | Pending |
-| API-02 | Phase 7 | Pending |
+| API-01 | Phase 7 | Complete |
+| API-02 | Phase 7 | Complete |
 | API-03 | Phase 7 | Pending |
 | API-04 | Phase 7 | Pending |
 | SRCH-01 | Phase 8 | Pending |
@@ -79,6 +79,7 @@
 | CLEN-01 | Phase 6 | Pending |
 
 **Coverage:**
+
 - v1.1 requirements: 16 total
 - Mapped to phases: 16
 - Unmapped: 0 ✓

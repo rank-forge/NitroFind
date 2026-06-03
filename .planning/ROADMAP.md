@@ -100,5 +100,5 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 4. Desktop UI | v1.0 | 4/4 | Complete | 2026-05-28 |
 | 5. Packaging & Distribution | v1.0 | 2/2 | Complete | 2026-05-29 |
 | 6. Server Lifecycle & Cleanup | v1.1 | 0/3 | Not started | - |
-| 7. Search REST API | v1.1 | 1/1 | Complete   | 2026-06-03 |
+| 7. Search REST API | v1.1 | 1/1 | Complete    | 2026-06-03 |
 | 8. Browser Search UI | v1.1 | 0/? | Not started | - |
