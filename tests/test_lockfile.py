@@ -120,23 +120,22 @@ def test_hashes_present() -> None:
 
 def test_required_top_level_packages() -> None:
     """
-    requirements.txt must contain pinned entries for all four top-level dependencies
+    requirements.txt must contain pinned entries for all top-level dependencies
     declared in requirements.in:
       - elasticsearch
-      - PyQt6
-      - qt-material
+      - flask (added Phase 6; PyQt6 and qt-material removed)
       - requests
 
     Case-insensitive match on package name followed by ==.
 
     INFRA-01 acceptance criterion: all required top-level packages present.
+    Phase 6 (CLEN-01): PyQt6 and qt-material removed; flask added.
     """
     content = REQUIREMENTS_TXT.read_text(encoding="utf-8").lower()
 
     required = [
         ("elasticsearch", "elasticsearch=="),
-        ("PyQt6", "pyqt6=="),
-        ("qt-material", "qt-material=="),
+        ("flask", "flask=="),
         ("requests", "requests=="),
     ]
 
@@ -149,3 +148,10 @@ def test_required_top_level_packages() -> None:
         f"requirements.txt is missing pinned entries for: {', '.join(missing)}\n"
         "These are required top-level dependencies from requirements.in."
     )
+
+    # Phase 6 (CLEN-01): Qt packages must not appear in the lockfile
+    for qt_pkg in ("pyqt6==", "qt-material=="):
+        assert qt_pkg not in content, (
+            f"requirements.txt still contains Qt package '{qt_pkg}' — "
+            "CLEN-01 requires all Qt dependencies removed in Phase 6."
+        )
