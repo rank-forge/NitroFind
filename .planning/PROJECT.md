@@ -2,7 +2,7 @@
 
 ## What This Is
 
-NitroFind is a shipped offline desktop application for automotive enthusiasts. It delivers instant, full-text search over a locally stored encyclopedia of car specifications, history, and articles. The complete stack — scraper, Elasticsearch index, PyQt6 UI, and distribution bundle — is built and distributable as a standalone Windows executable. No internet connection required at search time, no ads, no SEO clutter.
+NitroFind is an offline automotive search tool. It provides instant full-text search over a locally stored encyclopedia of car specifications, history, and articles — accessible at `http://localhost:5000` in any browser. A single `python main.py` starts Elasticsearch and the web server together. No internet connection required at search time, no ads, no SEO clutter.
 
 ## Core Value
 
@@ -35,10 +35,13 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - ✓ Arrow keys / Enter / Escape keyboard navigation — v1.0
 - ✓ PyInstaller onedir bundle + pre-extracted ES dir — no Python/Java required — v1.0
 
-### Active
+### Active (v1.1)
 
-- [ ] Empirical tuning of function_score weights against real indexed data (weights from literature are starting points)
-- [ ] Windows clean-machine smoke test (extract zip → double-click NitroFind.exe on machine with no Python/Java)
+- [ ] Flask web server on localhost:5000 — single `python main.py` starts ES + web server
+- [ ] Browser-based search UI (dark theme, debounce, filter sidebar, detail pane) replacing PyQt6
+- [ ] REST API endpoints `/api/search` and `/api/status`
+- [ ] PyQt6 removed from dependencies
+- [ ] Empirical tuning of function_score weights against real indexed data (carried from v1.0)
 
 ### Out of Scope
 
@@ -50,11 +53,11 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 ## Context
 
-**Current state:** v1.0 shipped 2026-05-29. Full stack working.
-- ~9,136 lines of Python across scraper, ES manager, search engine, PyQt6 UI, and packaging scripts
-- Tech stack: Python 3.11, Elasticsearch 8.18, PyQt6 6.11, qt-material, PyInstaller 6, BeautifulSoup4, mediawikiapi
+**Current state:** v1.0 archived 2026-05-29. v1.1 in progress — replacing PyQt6 UI with Flask web server.
+- ~9,136 lines of Python (v1.0); v1.1 removes PyQt6/qt-material, adds Flask
+- Tech stack: Python 3.11, Elasticsearch 8.18, Flask, BeautifulSoup4, mediawikiapi
 - ES node: `xpack.security.enabled: false`, `network.host: 127.0.0.1`, JVM heap pinned at 512 MB
-- Distribution: onedir PyInstaller bundle + pre-extracted ES 8.18 dir, zipped to `NitroFind-v1.0-windows-x86_64.zip`
+- Distribution: `python main.py` on localhost (no PyInstaller bundle in v1.1)
 - Database hard cap: 2 GB (scraper size guard at 1.8 GB)
 
 **Known limitations at v1.0:**
@@ -65,7 +68,7 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 ## Constraints
 
 - **Database size**: Must stay under 2 GB — drives scraper selectivity and data compression decisions
-- **Tech stack**: Python + Elasticsearch + PyQt — fixed; no substitutions
+- **Tech stack**: Python + Elasticsearch + Flask — PyQt6 removed in v1.1
 - **No AI/ML**: Relevance is pure mathematical function_score — no models, no embeddings, no API calls
 - **Offline at search time**: All data must be local; Elasticsearch node runs on localhost
 
@@ -96,4 +99,15 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 after v1.0 milestone close*
+## Current Milestone: v1.1 Web Interface
+
+**Goal:** Replace PyQt6 with a Flask web server accessible at http://localhost:5000 — single `python main.py` starts ES and the web server together.
+
+**Target features:**
+- Flask server lifecycle (starts ES + web server, graceful shutdown)
+- REST API (`/api/search`, `/api/status`)
+- Browser UI: dark theme, debounce search, filter sidebar, detail pane
+- PyQt6 removed from dependencies
+
+---
+*Last updated: 2026-06-03 — v1.1 milestone started*
