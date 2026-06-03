@@ -23,7 +23,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 ### 📋 v1.1 Web Interface
 
 - [ ] **Phase 6: Server Lifecycle & Cleanup** (3 plans) - Rewrite main.py for ES + Flask, remove PyQt6, add /api/status
-- [ ] **Phase 7: Search REST API** - /api/search endpoint wrapping existing SearchEngine with filter support
+- [x] **Phase 7: Search REST API** - /api/search endpoint wrapping existing SearchEngine with filter support (completed 2026-06-03)
 - [ ] **Phase 8: Browser Search UI** - Single-page HTML/CSS/JS dark-theme UI with debounce, filters, detail pane
 
 ## Phase Details
@@ -70,7 +70,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Wave 1**
 
-  - [ ] 07-01-PLAN.md — Extend state dict with es_client; TDD the /api/search route (ranked results, highlights, optional facet filters, 503 warmup guard)
+  - [x] 07-01-PLAN.md — Extend state dict with es_client; TDD the /api/search route (ranked results, highlights, optional facet filters, 503 warmup guard)
 
 ### Phase 8: Browser Search UI
 
@@ -100,5 +100,5 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 4. Desktop UI | v1.0 | 4/4 | Complete | 2026-05-28 |
 | 5. Packaging & Distribution | v1.0 | 2/2 | Complete | 2026-05-29 |
 | 6. Server Lifecycle & Cleanup | v1.1 | 0/3 | Not started | - |
-| 7. Search REST API | v1.1 | 0/1 | Not started | - |
+| 7. Search REST API | v1.1 | 1/1 | Complete   | 2026-06-03 |
 | 8. Browser Search UI | v1.1 | 0/? | Not started | - |
