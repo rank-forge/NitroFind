@@ -22,7 +22,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 ### 📋 v1.1 Web Interface
 
-- [ ] **Phase 6: Server Lifecycle & Cleanup** - Rewrite main.py for ES + Flask, remove PyQt6, add /api/status
+- [ ] **Phase 6: Server Lifecycle & Cleanup** (3 plans) - Rewrite main.py for ES + Flask, remove PyQt6, add /api/status
 - [ ] **Phase 7: Search REST API** - /api/search endpoint wrapping existing SearchEngine with filter support
 - [ ] **Phase 8: Browser Search UI** - Single-page HTML/CSS/JS dark-theme UI with debounce, filters, detail pane
 
@@ -38,7 +38,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. `GET /api/status` returns HTTP 503 with `{"status": "starting"}` while ES is still warming up
   4. Pressing Ctrl+C exits cleanly — no orphaned JVM process visible in task manager
   5. `pip install -r requirements.txt` succeeds without any Qt package; no PyQt6/qt-material import in codebase
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 06-01-PLAN.md — Add Flask, strip es_manager.py of Qt/Windows/ESHealthWorker, update its tests
+  - [ ] 06-02-PLAN.md — Create nitrofind/server.py (Flask app, /api/status, GET /, background ES poller) + tests
+  - [ ] 06-03-PLAN.md — Rewrite main.py as Flask lifecycle entry point, delete nitrofind/ui/, CLEN-01 cleanup
 **UI hint**: yes
 
 ### Phase 7: Search REST API
@@ -75,6 +78,6 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 3. Search Logic & Relevance Scoring | v1.0 | 3/3 | Complete | 2026-05-28 |
 | 4. Desktop UI | v1.0 | 4/4 | Complete | 2026-05-28 |
 | 5. Packaging & Distribution | v1.0 | 2/2 | Complete | 2026-05-29 |
-| 6. Server Lifecycle & Cleanup | v1.1 | 0/? | Not started | - |
+| 6. Server Lifecycle & Cleanup | v1.1 | 0/3 | Not started | - |
 | 7. Search REST API | v1.1 | 0/? | Not started | - |
 | 8. Browser Search UI | v1.1 | 0/? | Not started | - |
