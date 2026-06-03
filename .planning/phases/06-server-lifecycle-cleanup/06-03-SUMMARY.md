@@ -3,7 +3,7 @@ phase: 06-server-lifecycle-cleanup
 plan: "03"
 subsystem: infra
 tags: [flask, python, main, lifecycle, cleanup, clen-01, srvr-01, srvr-02, srvr-04]
-status: checkpoint-pending
+status: complete
 
 # Dependency graph
 requires:
@@ -16,7 +16,7 @@ provides:
   - nitrofind/ui/ deleted (5 files) — CLEN-01 for Phase 6 code paths
   - PyQt6 UI test files deleted (4 tests/test_ui/ + test_loading_window.py)
   - tests/test_search/test_engine.py guarded with PYQT6_AVAILABLE skip guard
-  - Manual smoke test checkpoint pending human verification
+  - Manual smoke test checkpoint: user-approved (503→200 transition, placeholder page, clean Ctrl+C shutdown)
 affects: [07-search-api, 08-web-ui]
 
 # Tech tracking
@@ -73,7 +73,7 @@ completed: 2026-06-03
 - **Duration:** ~10 min
 - **Started:** 2026-06-03T15:00:00Z
 - **Completed:** Task 1 complete; Task 2 (manual checkpoint) pending
-- **Tasks:** 1/2 complete
+- **Tasks:** 2/2 complete
 - **Files modified/deleted:** 15
 
 ## Accomplishments
@@ -87,7 +87,7 @@ completed: 2026-06-03
 
 1. **Task 1: Rewrite main.py as Flask lifecycle entry point and delete UI layer** - `ba0aebc` (feat)
 
-_Task 2 (manual smoke test checkpoint) pending human verification._
+2. **Task 2: Manual smoke test checkpoint** — approved by user: 503→200 status transition confirmed, placeholder page renders, clean Ctrl+C with no orphaned JVM (SRVR-01, SRVR-02, SRVR-04 verified).
 
 ## Files Created/Modified
 
@@ -163,7 +163,7 @@ Awaiting Task 2 human verification (manual smoke test). Upon approval:
 
 ---
 *Phase: 06-server-lifecycle-cleanup*
-*Completed (partial): 2026-06-03 — awaiting Task 2 checkpoint*
+*Completed: 2026-06-03 — Task 2 checkpoint approved by user*
 
 ## Self-Check: PASSED
 
