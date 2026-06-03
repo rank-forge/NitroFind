@@ -518,7 +518,7 @@ function renderResultCount(results) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Filter dropdown population: static vs. dynamic**
    - What we know: `era_bucket` values are decade labels (schema comment: "e.g. '1960s'"). `body_style` values (e.g. "coupe", "sedan") and `manufacturer` values are scraped keyword terms with no enumerated list in code.
