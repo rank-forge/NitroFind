@@ -6,7 +6,7 @@ Exports:
   state               — Shared mutable state dict (ready, process, es_health, doc_count,
                         index_size_bytes, es_client)
   start_es_background — Spawn daemon thread that starts ES subprocess and polls cluster health
-  index               — GET / route: NitroFind placeholder HTML
+  index               — GET / route: serves rendered index.html search UI
   api_status          — GET /api/status route: 503 warmup guard / 200 health JSON
   api_search          — GET /api/search route: ranked full-text search with optional filters
   _result_to_api_dict — Serialize ArticleResult to the API-01 wire format
@@ -17,7 +17,7 @@ Requirement coverage:
   API-01:  GET /api/search returns JSON array with title, url, source_domain, excerpt, score, took_ms
   API-02:  GET /api/search accepts manufacturer, era_bucket, body_style filter params
   API-03:  GET /api/status returns JSON with es_health, doc_count, index_size_bytes
-  API-04:  GET / serves NitroFind placeholder HTML
+  API-04:  GET / serves rendered index.html search UI
 
 Security mitigations:
   T-06-05: 503 warmup guard checks state["ready"] before any ES client call
@@ -31,7 +31,7 @@ import subprocess
 import threading
 import time
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from elasticsearch import Elasticsearch
 
 from nitrofind.es_manager import ES_URL, shutdown_es  # noqa: F401 (shutdown_es re-exported for main.py)
@@ -44,7 +44,12 @@ from nitrofind.search.query_builder import build_search_body, build_filter_claus
 
 logger = logging.getLogger("nitrofind.server")
 
-app = Flask(__name__)
+_pkg_dir = os.path.dirname(os.path.abspath(__file__))
+app = Flask(
+    __name__,
+    template_folder=os.path.join(_pkg_dir, "..", "templates"),
+    static_folder=os.path.join(_pkg_dir, "..", "static"),
+)
 
 # ---------------------------------------------------------------------------
 # Shared mutable state (D-09: module-level dict, single writer, GIL-safe)
@@ -66,8 +71,8 @@ state: dict = {
 
 @app.route("/")
 def index():
-    """GET / — NitroFind placeholder HTML (D-13)."""
-    return "<h1>NitroFind</h1><p>Search UI coming in Phase 8.</p>"
+    """GET / — NitroFind search UI (Phase 8)."""
+    return render_template("index.html")
 
 
 @app.route("/api/status")

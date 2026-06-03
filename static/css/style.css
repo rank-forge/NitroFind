@@ -1,0 +1,306 @@
+/* =========================================================
+   NitroFind — Dark Teal Theme
+   All color values are defined as CSS custom properties on
+   :root. Component rules reference var(--token) exclusively;
+   no raw hex values appear outside this block.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. Design tokens (CSS custom properties)
+   --------------------------------------------------------- */
+:root {
+  /* Backgrounds — off-black, never pure #000 (taste-skill §8.B) */
+  --bg-primary:   #0f1117;   /* page background */
+  --bg-surface:   #161b22;   /* card / surface elevation */
+  --bg-input:     #1c2128;   /* search input background */
+
+  /* Text — WCAG AA on --bg-primary */
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+
+  /* One accent, locked — dark teal (D-09) */
+  --accent:       #2dd4bf;
+  --accent-hover: #5eead4;
+
+  /* Structure */
+  --border:     #30363d;
+  --radius:     6px;          /* one radius scale — taste-skill §4.4 */
+  --transition: 200ms ease;
+}
+
+/* ---------------------------------------------------------
+   2. Base / Reset
+   --------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ---------------------------------------------------------
+   3. State machine — CSS owns show/hide of each view
+   --------------------------------------------------------- */
+
+/* Default: only home-view visible */
+.results-view,
+.article-view {
+  display: none;
+}
+
+/* Results state */
+body[data-state="results"] .home-view    { display: none; }
+body[data-state="results"] .results-view { display: block; }
+
+/* Article state */
+body[data-state="article"] .home-view    { display: none; }
+body[data-state="article"] .results-view { display: none; }
+body[data-state="article"] .article-view { display: block; }
+
+/* ---------------------------------------------------------
+   4. Home view — centered logo + search box
+   --------------------------------------------------------- */
+.home-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+.logo {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  margin: 0;
+}
+
+.search-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 580px;
+}
+
+#search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+#search-input:focus {
+  border-color: var(--accent);
+}
+
+/* Warmup disabled state (D-07) */
+#search-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+#status-line {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  transition: opacity var(--transition);
+}
+
+/* ---------------------------------------------------------
+   5. Results view — top bar + filter row + results list
+   --------------------------------------------------------- */
+.results-view {
+  padding: 0 0 2rem;
+}
+
+/* Top bar: logo-small + results search input */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo-small {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+#search-input-results {
+  flex: 1;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.95rem;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+#search-input-results:focus {
+  border-color: var(--accent);
+}
+
+/* Filter row */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-row select {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.85rem;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.filter-row select:focus {
+  border-color: var(--accent);
+}
+
+/* Stats line */
+#stats-line {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.5rem 1.5rem 0;
+  margin: 0;
+}
+
+/* Results list */
+#results-list {
+  padding: 0.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ---------------------------------------------------------
+   6. Result item cards
+   --------------------------------------------------------- */
+.result-item {
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--transition), border-color var(--transition);
+}
+
+.result-item:hover {
+  background-color: var(--bg-surface);
+  border-color: var(--text-secondary);
+}
+
+/* Keyboard selected highlight (D-11) */
+.result-item.selected {
+  background-color: var(--bg-surface);
+  border-left: 2px solid var(--accent);
+}
+
+.result-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.result-meta {
+  margin-bottom: 0.25rem;
+}
+
+.result-domain {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.result-excerpt {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ES highlight <b> tags — bold in results (SRCH-02) */
+.result-excerpt b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------
+   7. Article view
+   --------------------------------------------------------- */
+.article-view {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+#back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.875rem;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition), background-color var(--transition);
+  margin-bottom: 1.25rem;
+}
+
+#back-btn:hover {
+  border-color: var(--accent);
+  background-color: var(--bg-input);
+}
+
+#article-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.375rem;
+}
+
+#article-source {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.25rem;
+}
+
+#article-body {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
