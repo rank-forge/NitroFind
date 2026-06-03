@@ -47,7 +47,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-  - [ ] 06-02-PLAN.md — Create nitrofind/server.py (Flask app, /api/status, GET /, background ES poller) + tests
+  - [x] 06-02-PLAN.md — Create nitrofind/server.py (Flask app, /api/status, GET /, background ES poller) + tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
