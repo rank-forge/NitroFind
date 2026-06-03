@@ -10,7 +10,7 @@ Requirement coverage:
   SRVR-02: PORT env var port-resolution contract (test_port_env_var)
   SRVR-03: HTTP 503 before ready, HTTP 200 after ready (test_status_before/after_ready)
   API-03:  /api/status JSON shape (test_status_response_shape)
-  API-04:  GET / HTML content (test_root_returns_html)
+  API-04:  GET / serves rendered index.html template (test_root_returns_html, test_root_uses_template)
 """
 
 import os
@@ -108,12 +108,21 @@ def test_status_response_shape(client_ready):
 
 
 # ---------------------------------------------------------------------------
-# API-04: GET / placeholder HTML
+# API-04: GET / rendered index.html template
 # ---------------------------------------------------------------------------
 
 
 def test_root_returns_html(client_not_ready):
-    """GET / returns HTTP 200 with HTML body containing 'NitroFind'."""
+    """GET / returns HTTP 200 with rendered index.html template."""
     resp = client_not_ready.get("/")
     assert resp.status_code == 200
     assert b"NitroFind" in resp.data
+    assert b"<!DOCTYPE html>" in resp.data
+
+
+def test_root_uses_template(client_not_ready):
+    """GET / responds with text/html content-type and structural template marker."""
+    resp = client_not_ready.get("/")
+    assert resp.status_code == 200
+    assert resp.content_type.startswith("text/html")
+    assert b'data-state="home"' in resp.data
