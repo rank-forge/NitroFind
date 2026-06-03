@@ -422,17 +422,19 @@ state["ready"] = True
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`took_ms` placement: per-item vs response envelope**
    - What we know: API-01 says "JSON array with ... took_ms for each result" (per-item wording). ES returns one `took` per response.
    - What's unclear: Whether Phase 8 UI would prefer `{took_ms: 12, results: [...]}` (envelope) over per-item repetition.
    - Recommendation: Per-item for now (matches literal requirement wording). Phase 8 planner can migrate to envelope if needed without breaking Phase 7.
+   - **RESOLVED: Per-item `took_ms` — matches literal API-01 wording; Phase 8 can migrate to envelope if needed.**
 
 2. **Pagination parameters in Phase 7 scope**
    - What we know: `build_search_body()` accepts `from_` and `size`. API-01/API-02 do not mention pagination params.
    - What's unclear: Whether `?size=N&from=N` should be accepted in Phase 7.
    - Recommendation: Accept them (pass through to `build_search_body` which already clamps size to MAX_RESULT_SIZE). Phase 8 UI may use them for scroll/pagination. Zero cost to wire them now.
+   - **RESOLVED: Accept `?size=N&from=N` — pass through to `build_search_body()` which clamps size to MAX_RESULT_SIZE. Zero-cost wire-up; Phase 8 benefits from pagination support.**
 
 ---
 
