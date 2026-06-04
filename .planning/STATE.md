@@ -1,87 +1,67 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Web Interface
-status: milestone_complete
-stopped_at: Phase 8 context gathered
-last_updated: "2026-06-03T22:54:09.128Z"
-last_activity: 2026-06-03 -- Phase 08 execution started
+milestone: v1.2
+milestone_name: TBD
+status: planning
+stopped_at: v1.1 milestone archived — awaiting next milestone definition
+last_updated: "2026-06-04T00:00:00.000Z"
+last_activity: 2026-06-04 -- v1.1 milestone complete
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-03)
+See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Phase 08 — browser-search-ui
+**Current focus:** Planning next milestone (v1.2)
 
 ## Current Position
 
-Phase: 08
-Plan: Not started
-Status: Milestone complete
+Phase: —
+Plan: —
+Status: v1.1 archived; next milestone not yet defined
 Last activity: 2026-06-04
-
-Progress: `[ ] [ ] [ ]` (0/3 phases)
 
 ## Performance Metrics
 
-**Velocity:**
+**Velocity (v1.1):**
 
-- Total plans completed: 18
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 7
+- Timeline: 2 days (2026-06-03 → 2026-06-04)
 
-**By Phase:**
+**All-time:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 02 | 5 | - | - |
-| 04 | 4 | - | - |
-| 05 | 2 | - | - |
-| 06 | 3 | - | - |
-| 07 | 1 | - | - |
-| 08 | 3 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: —
-- Trend: —
-
-*Updated after each plan completion*
-| Phase 02-data-pipeline-scraper-indexer P05 | 10m | 2 tasks | 2 files |
+- v1.0: 18 plans, 17 days
+- v1.1: 7 plans, 2 days
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
 
-- Roadmap: Horizontal-layer phase structure chosen — each phase is a complete technical subsystem (Infrastructure → Pipeline → Search → UI → Packaging)
-- Phase 1: ES 8.18 with xpack.security.enabled: false, xpack.security.http.ssl.enabled: false, network.host: 127.0.0.1, JVM heap pinned to -Xms512m -Xmx512m
-- Phase 1: Index mapping with dynamic: false and flattened type for infobox data to prevent mapping explosion
-- Phase 1 Plan 04: State dict pattern (state = {"worker": None}) used in main.py so closures can replace the active ESHealthWorker on Retry without nonlocal
-- Phase 1 Plan 04: ES cold-start deadline extended from 60s (plan spec) to 180s after observing ~120s actual cold-start time on target machine
-- Phase 3: function_score uses Gaussian recency decay + log(word_count) modifier + has_infobox boost; score_mode: sum, boost_mode: multiply
-- v1.1: PyQt6 UI removed; Flask dev server replaces it — `python main.py` starts ES + Flask, browser at localhost:5000
+Recent decisions from v1.1:
+- PyQt6/qt-material removed; Flask dev server is the v1.1 distribution model — no PyInstaller bundle needed
+- Linux/WSL-only for v1.1 — all `sys.platform == 'win32'` branches removed from `es_manager.py`
+- Module-level state dict pattern extended to `es_client` (GIL-safe single writer)
+- `data-state` CSS attribute selectors for SPA view switching — no JS show/hide
 
 ### Pending Todos
 
-None yet.
+- function_score weights need empirical tuning against real indexed data (carried from v1.0)
+- Windows clean-machine smoke test not yet run (carried from v1.0 — Linux/WSL only for v1.1)
 
 ### Blockers/Concerns
 
-- function_score weights need empirical tuning against real indexed data — weights from literature are starting points (carry to v1.1)
-- Windows clean-machine smoke test not yet run — carry to v1.1 validation phase
+None.
 
 ### Quick Tasks Completed
 
@@ -91,7 +71,7 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and deferred at milestone close on 2026-06-03:
+Items acknowledged and deferred at v1.0 milestone close on 2026-06-03:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
@@ -100,9 +80,3 @@ Items acknowledged and deferred at milestone close on 2026-06-03:
 | verification_gap | phase-03 / 03-VERIFICATION.md | human_needed — 3 live-ES ranking quality checks require real indexed data | 2026-06-03 |
 | verification_gap | phase-04 / 04-VERIFICATION.md | human_needed — all 5 UAT scenarios approved in 04-HUMAN-UAT.md; VERIFICATION.md not updated to passed | 2026-06-03 |
 | verification_gap | phase-05 / 05-VERIFICATION.md | human_needed — Windows clean-machine smoke test requires native Windows + no Python/Java | 2026-06-03 |
-
-## Session Continuity
-
-Last session: 2026-06-03T20:38:06.561Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-browser-search-ui/08-CONTEXT.md

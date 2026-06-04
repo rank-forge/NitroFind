@@ -57,6 +57,53 @@
 
 ---
 
+## Milestone: v1.1 — Web Interface
+
+**Shipped:** 2026-06-04
+**Phases:** 3 (6–8) | **Plans:** 7 | **Timeline:** 2 days (2026-06-03 → 2026-06-04)
+
+### What Was Built
+
+- Phase 6: Flask 3.1.3 added; PyQt6/qt-material removed; `es_manager.py` stripped to Linux-only utilities; `nitrofind/server.py` with state dict, 503 warmup guard, daemon-thread ES health poller, `/api/status`; `main.py` rewritten as Flask lifecycle entry point; `nitrofind/ui/` deleted
+- Phase 7: `GET /api/search` thin wrapper over existing query builder — highlight-or-fallback excerpts, filter forwarding, 503 guard, `?size`/`?from` passthrough; 8 unit tests
+- Phase 8: `templates/index.html` three-state SPA skeleton with `data-state` CSS switching; `static/css/style.css` dark teal custom properties system; `static/js/app.js` vanilla JS SPA — 300ms debounce with AbortController, warmup polling, result rendering, keyboard nav; 7-item human UAT checklist
+
+### What Worked
+
+- **2-day velocity**: A focused 3-phase migration (strip Qt → add API → add UI) completed in 2 days. The clean v1.0 abstractions (state dict, query builder, ES manager) meant v1.1 was mostly wiring, not rewriting.
+- **`data-state` CSS attribute pattern**: Using a single `body[data-state=...]` attribute to switch views eliminated all JS show/hide logic and made the SPA state machine readable in CSS. Discovered cleanly during Phase 8 research.
+- **AbortController for debounce**: Using AbortController to cancel in-flight fetches instead of debouncing at the timeout level is correct — prevents stale responses from landing after a newer query. Zero extra packages.
+- **Module-level state dict extended naturally**: Adding `es_client` to the existing state dict in Phase 7 required zero refactoring. The pattern from v1.0 (Phase 1 Plan 04) paid off.
+- **Explicit `_pkg_dir` for Flask template resolution**: Identifying the `Flask(__name__)` root_path pitfall early (from Phase 8 RESEARCH.md) prevented a frustrating runtime bug. Research-before-plan pays off for framework-specific pitfalls.
+
+### What Was Inefficient
+
+- **REQUIREMENTS.md checkboxes not updated during execution** (again): Same issue as v1.0 — all 16 requirements were delivered but only 2/16 were formally checked at close. Despite explicitly noting this in v1.0 retrospective, it happened again. Needs a hook or enforcement at plan completion, not a reminder.
+- **Phase 8 had 3 plans but ROADMAP.md was not updated**: Progress table still showed Phase 6 and 8 as "Not started" at milestone close. Plan completions didn't update the roadmap table.
+- **No milestone audit before close**: Skipped `/gsd-audit-milestone` — proceeded with `Proceed anyway` choice. No gaps found at close, but the habit of skipping the audit should be examined.
+
+### Patterns Established
+
+- **`_pkg_dir` Flask root**: `_pkg_dir = os.path.dirname(os.path.abspath(__file__))` then `Flask(__name__, template_folder=os.path.join(_pkg_dir, "..", "templates"))` — required when Flask app is inside a package subdirectory, not the project root.
+- **`data-state` SPA state machine**: `body[data-state=home]`, `body[data-state=results]`, `body[data-state=article]` — CSS shows/hides sections based on attribute; JS only sets the attribute value. Clean separation.
+- **AbortController fetch debounce**: Cancel in-flight XHR/fetch at the AbortController level when a new keystroke fires, not just at the setTimeout level. Prevents stale response race conditions.
+- **503 warmup guard as single chokepoint**: `if not state["ready"]: return jsonify({"status": "starting"}), 503` — one guard per route, early return. Simple and testable.
+
+### Key Lessons
+
+1. **REQUIREMENTS.md checkbox drift is a structural problem, not a discipline problem.** It happened twice across two milestones despite being explicitly called out in v1.0 retrospective. A hook at plan completion to check the file would fix this.
+2. **Flask framework pitfalls are well-documented but not obvious from the official docs.** The `template_folder` root_path issue, FOUC from missing initial `data-state`, and `innerHTML` vs `textContent` for highlight rendering all came from curated research. RESEARCH.md-before-plan-for-framework-heavy-phases is the right pattern.
+3. **A 17-plan v1.0 provides clean abstractions for a fast v1.1.** The state dict, query builder, and ES manager from v1.0 were reused without modification in v1.1. Over-engineering at v1.0 would have hurt; under-engineering would have forced rewrites.
+4. **ROADMAP.md progress table goes stale if not updated at plan completion.** Add roadmap table update to the plan-completion checklist.
+
+### Cost Observations
+
+- Model: Claude Sonnet 4.6 throughout
+- Sessions: Multiple (exact count not tracked)
+- Notable: Phase 8 (browser UI) was the most expensive v1.1 phase — 3 plans, HTML + CSS + JS + tests. UI work remains the heaviest investment relative to backend phases.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -64,14 +111,17 @@
 | Milestone | Phases | Plans | Timeline | Key Change |
 |-----------|--------|-------|----------|------------|
 | v1.0 | 5 | 18 | 17 days | Baseline — first milestone |
+| v1.1 | 3 | 7 | 2 days | Faster execution — clean abstractions from v1.0 eliminated rewriting |
 
 ### Cumulative Quality
 
-| Milestone | Test Functions | Test Files | LOC (Python) |
-|-----------|---------------|------------|---------------|
-| v1.0 | 146 | 20 | ~9,136 |
+| Milestone | Files Changed | LOC Change | Tech Added |
+|-----------|--------------|------------|------------|
+| v1.0 | 143 | ~9,136 net | ES, PyQt6, requests, BS4, PyInstaller |
+| v1.1 | 89 | +12,077 / -3,140 | Flask; removed PyQt6, qt-material |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Update tracking artifacts during execution — deferred documentation creates close-time debt.
-2. Empirical validation requirements (live data, clean machine) need their own phases.
+1. **Update tracking artifacts during execution** — deferred documentation creates close-time debt (confirmed across both milestones; structural fix needed).
+2. **Empirical validation requirements (live data, clean machine) need their own phases** — deferred from v1.0, still open in v1.2.
+3. **Clean v1.0 abstractions enable fast v1.1** — state dict, query builder, and ES manager reused without modification; velocity doubled despite fewer engineers.

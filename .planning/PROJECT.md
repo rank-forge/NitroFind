@@ -25,23 +25,27 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - ✓ Article length signal via log1p modifier on word_count — v1.0
 - ✓ Boolean boost for articles with structured infobox — v1.0
 - ✓ score_mode: sum, boost_mode: multiply — v1.0
-- ✓ 300ms debounce search — results update as user types — v1.0
-- ✓ Result list shows title, source domain, highlighted excerpt — v1.0
-- ✓ Full article text in detail pane on click/Enter — no browser opens — v1.0
-- ✓ Filter sidebar for manufacturer, era_bucket, body style — persists across query retypes — v1.0
-- ✓ Query terms highlighted in result excerpts — v1.0
-- ✓ Result count and query time shown below search box — v1.0
-- ✓ Dark teal theme default — v1.0
-- ✓ Arrow keys / Enter / Escape keyboard navigation — v1.0
-- ✓ PyInstaller onedir bundle + pre-extracted ES dir — no Python/Java required — v1.0
+- ✓ 300ms debounce search — results update as user types — v1.1
+- ✓ Result list shows title, source domain, highlighted excerpt — v1.1
+- ✓ Full article text in detail pane on click/Enter — no browser tab opens — v1.1
+- ✓ Filter sidebar for manufacturer, era_bucket, body style — persists across query retypes — v1.1
+- ✓ Query terms highlighted in result excerpts — v1.1
+- ✓ Result count and query time shown below search box — v1.1
+- ✓ Dark teal theme default — v1.1
+- ✓ Arrow keys / Enter / Escape keyboard navigation — v1.1
+- ✓ Flask web server on localhost:5000 — single `python main.py` starts ES + web server — v1.1
+- ✓ Browser-based search UI (dark theme, debounce, filter sidebar, detail pane) replacing PyQt6 — v1.1
+- ✓ REST API endpoints `/api/search` and `/api/status` — v1.1
+- ✓ PyQt6 removed from dependencies — v1.1
 
-### Active (v1.1)
+### Active (v1.2+)
 
-- ✓ Flask web server on localhost:5000 — single `python main.py` starts ES + web server — v1.1 Phase 8
-- ✓ Browser-based search UI (dark theme, debounce, filter sidebar, detail pane) replacing PyQt6 — v1.1 Phase 8
-- ✓ REST API endpoints `/api/search` and `/api/status` — v1.1 Phase 8
-- [ ] PyQt6 removed from dependencies
 - [ ] Empirical tuning of function_score weights against real indexed data (carried from v1.0)
+- [ ] Windows clean-machine smoke test (carried from v1.0 — Linux/WSL only for v1.1)
+- [ ] Full installer / startup shortcut (Windows .bat, macOS .command)
+- [ ] Light/dark theme toggle in the browser UI
+- [ ] Search history (last N queries, persisted in localStorage)
+- [ ] `/api/article/{id}` endpoint for fetching individual articles by ES _id
 
 ### Out of Scope
 
@@ -50,20 +54,23 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - Online/cloud mode — the product promise is offline-first; no external calls at search time
 - Periodic auto-update — scraper is a one-shot tool; re-running it refreshes the database manually
 - User accounts or saved searches — single-user local tool, no auth complexity needed
+- PyInstaller packaging — removed in v1.1; `python main.py` is the distribution model
 
 ## Context
 
-**Current state:** v1.0 archived 2026-05-29. v1.1 in progress — Phase 8 complete (2026-06-04): browser search UI delivered; PyQt6 removal and scoring tuning remain.
-- ~9,136 lines of Python (v1.0); v1.1 removes PyQt6/qt-material, adds Flask
-- Tech stack: Python 3.11, Elasticsearch 8.18, Flask, BeautifulSoup4, mediawikiapi
-- ES node: `xpack.security.enabled: false`, `network.host: 127.0.0.1`, JVM heap pinned at 512 MB
-- Distribution: `python main.py` on localhost (no PyInstaller bundle in v1.1)
-- Database hard cap: 2 GB (scraper size guard at 1.8 GB)
+**Current state:** v1.1 shipped 2026-06-04. Browser-based SPA replaced PyQt6 desktop UI. Flask web server on localhost:5000. All v1.1 requirements (16/16) delivered.
 
-**Known limitations at v1.0:**
-- function_score weights are literature-derived, not empirically tuned (no live indexed data during development)
+- Tech stack: Python 3.11, Elasticsearch 8.18, Flask 3.1.3, BeautifulSoup4, mediawikiapi, vanilla JS
+- ES node: `xpack.security.enabled: false`, `network.host: 127.0.0.1`, JVM heap pinned at 512 MB
+- Distribution: `python main.py` on localhost (no PyInstaller bundle)
+- Database hard cap: 2 GB (scraper size guard at 1.8 GB)
+- PyQt6 and qt-material fully removed from dependencies
+
+**Known limitations:**
+- function_score weights are literature-derived, not empirically tuned (requires live indexed data)
 - Blog scraper covers Hagerty; CSS selectors for Car and Driver/Road & Track/Hemmings not yet validated against live HTML
-- Windows clean-machine smoke test not yet run
+- Windows clean-machine smoke test not yet run (Linux/WSL only)
+- Manufacturer filter uses free-text input only (no aggregation endpoint to populate dropdown dynamically)
 
 ## Constraints
 
@@ -78,15 +85,17 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 |----------|-----------|---------|
 | Cars only (all eras) | Keeps DB under 2 GB; aligns with enthusiast focus | ✓ Good — no scope creep |
 | Relevance = source quality signals, not car specs | User wants article authority, not a performance leaderboard | ✓ Good — function_score clean |
-| Full article text in detail view | Enthusiasts want to read the actual content, not just a snippet | ✓ Good — QTextBrowser no-browser wiring confirmed |
+| Full article text in detail view | Enthusiasts want to read the actual content, not just a snippet | ✓ Good — confirmed in v1.0 PyQt6 + v1.1 browser |
 | Instant search + filter panel combined | Best of both: fluid discovery + precise narrowing | ✓ Good — debounce + filter sidebar both shipped |
 | function_score with explicit math only | No AI dependency; deterministic, inspectable, reproducible results | ✓ Good — constraint held throughout |
 | Horizontal-layer phase structure | Each phase is a complete technical subsystem | ✓ Good — each phase independently testable |
 | ES cold-start deadline: 180s (not 60s) | Observed ~120s actual cold-start on target machine | ✓ Good — real-world validated |
-| State dict pattern for ESHealthWorker replacement | Closures need mutable reference; nonlocal insufficient | ✓ Good — clean Retry flow |
-| PyInstaller onedir (not --onefile) | Avoids AV false-positives and per-launch extraction delay | ✓ Good — standard pattern for Qt apps |
-| upx=False in spec | UPX corrupts Qt DLLs on Windows | ✓ Good — avoid corruption |
-| ES_BUNDLE env var for assembly | Keeps ES path out of spec for repeatable builds | ✓ Good — build-time decoupling |
+| State dict pattern for shared mutable state | Closures need mutable reference; nonlocal insufficient; GIL-safe for single-writer pattern | ✓ Good — extended to es_client in v1.1 |
+| Flask dev server (no WSGI/HTTPS) | Local single-user tool — Flask dev server sufficient for localhost | ✓ Good — no over-engineering |
+| Linux/WSL-only for v1.1 | Remove win32 branches to simplify es_manager.py; Windows support deferred | ✓ Good — reduced code complexity |
+| `data-state` CSS attribute selectors for SPA views | No JS show/hide; pure CSS state machine; FOUC prevented by hardcoded `data-state=home` in HTML | ✓ Good — clean architecture |
+| System-font stack over self-hosted web fonts | Offline-safe, zero setup, no font loading jank | ✓ Good — aligns with offline-first product promise |
+| PyInstaller onedir (not --onefile) | Avoids AV false-positives and per-launch extraction delay | ✓ Good (v1.0 only — removed in v1.1) |
 
 ## Evolution
 
@@ -99,15 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-## Current Milestone: v1.1 Web Interface
-
-**Goal:** Replace PyQt6 with a Flask web server accessible at http://localhost:5000 — single `python main.py` starts ES and the web server together.
-
-**Target features:**
-- Flask server lifecycle (starts ES + web server, graceful shutdown)
-- REST API (`/api/search`, `/api/status`)
-- Browser UI: dark theme, debounce search, filter sidebar, detail pane
-- PyQt6 removed from dependencies
-
----
-*Last updated: 2026-06-03 — v1.1 milestone started*
+*Last updated: 2026-06-04 after v1.1 milestone*
