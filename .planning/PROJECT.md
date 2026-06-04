@@ -37,9 +37,9 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 ### Active (v1.1)
 
-- [ ] Flask web server on localhost:5000 — single `python main.py` starts ES + web server
-- [ ] Browser-based search UI (dark theme, debounce, filter sidebar, detail pane) replacing PyQt6
-- [ ] REST API endpoints `/api/search` and `/api/status`
+- ✓ Flask web server on localhost:5000 — single `python main.py` starts ES + web server — v1.1 Phase 8
+- ✓ Browser-based search UI (dark theme, debounce, filter sidebar, detail pane) replacing PyQt6 — v1.1 Phase 8
+- ✓ REST API endpoints `/api/search` and `/api/status` — v1.1 Phase 8
 - [ ] PyQt6 removed from dependencies
 - [ ] Empirical tuning of function_score weights against real indexed data (carried from v1.0)
 
@@ -53,7 +53,7 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 ## Context
 
-**Current state:** v1.0 archived 2026-05-29. v1.1 in progress — replacing PyQt6 UI with Flask web server.
+**Current state:** v1.0 archived 2026-05-29. v1.1 in progress — Phase 8 complete (2026-06-04): browser search UI delivered; PyQt6 removal and scoring tuning remain.
 - ~9,136 lines of Python (v1.0); v1.1 removes PyQt6/qt-material, adds Flask
 - Tech stack: Python 3.11, Elasticsearch 8.18, Flask, BeautifulSoup4, mediawikiapi
 - ES node: `xpack.security.enabled: false`, `network.host: 127.0.0.1`, JVM heap pinned at 512 MB
