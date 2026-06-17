@@ -40,6 +40,25 @@ logger = logging.getLogger(__name__)
 # contact address via scraper.yaml blogs.user_agent (CR-05).
 _DEFAULT_USER_AGENT = "NitroFind/1.0 (offline automotive research tool)"
 
+# Expanded noise selector list for blog article cleanup (BUG-02)
+# Strips breadcrumbs, tags, related articles, newsletter signups, author bios, etc.
+# from article containers before get_text() call.
+_BLOG_NOISE_SELECTORS = (
+    "script, style, nav, footer, aside, "
+    ".ad, .advertisement, "
+    ".breadcrumb, .breadcrumbs, "
+    ".article-meta, .post-meta, "
+    ".tag-list, .tags, .post-tags, "
+    ".related-articles, .related-posts, "
+    "[class*='related'], "
+    ".newsletter-signup, [class*='newsletter'], "
+    "[class*='signup'], "
+    ".author-bio, .author-info, "
+    ".share-buttons, .social-share, "
+    ".comments, #comments, "
+    ".sidebar"
+)
+
 
 class BlogScraper:
     """Automotive blog scraper that yields document dicts for the ES car_articles index.
@@ -272,8 +291,8 @@ class BlogScraper:
 
         soup = BeautifulSoup(resp.text, "lxml")
 
-        # Remove noise elements before extracting text (RESEARCH.md Pattern 6)
-        for noise_tag in soup.select("script, style, nav, footer, aside, .ad, .advertisement"):
+        # Remove expanded noise elements before extracting text (BUG-02 fix)
+        for noise_tag in soup.select(_BLOG_NOISE_SELECTORS):
             noise_tag.decompose()
 
         # Pitfall 4: selector may not match current HTML — always guard
@@ -285,6 +304,9 @@ class BlogScraper:
                 target["article_selector"],
             )
             return None
+
+        # BUG-01 fix: capture HTML BEFORE get_text() strips structure (Pitfall 3 / Pattern 5)
+        body_html = str(container)          # full HTML with <table> preserved
 
         # L-05: plain text only — get_text removes all tags, regex collapses whitespace
         raw_text = container.get_text(separator=" ", strip=True)
@@ -313,6 +335,7 @@ class BlogScraper:
             "article_id": url_slug,
             "scraped_at": datetime.now(timezone.utc).isoformat(),
             "body": body_text,
+            "body_html": body_html,    # BUG-01: stored HTML with <table> preserved (index:false)
             "excerpt": make_excerpt(body_text),
             "word_count": len(body_text.split()),
             "has_infobox": False,

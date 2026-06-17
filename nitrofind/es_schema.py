@@ -36,6 +36,10 @@ CAR_ARTICLES_MAPPING = {
         # SCHEMA-03: full plain-text body + 300-character display excerpt
         "body":          {"type": "text", "analyzer": "standard"},
         "excerpt":       {"type": "keyword"},  # Pitfall 5: keyword not text — display-only, no analysis
+        "body_html":     {                     # Phase 9 / BUG-01: stored-not-tokenized display HTML
+            "type": "text",
+            "index": False,   # stored in _source, not tokenized — NOT keyword (ignore_above would truncate)
+        },
 
         # SCHEMA-04: automotive facet fields
         "manufacturer":       {"type": "keyword"},

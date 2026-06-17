@@ -26,6 +26,8 @@ from elasticsearch import Elasticsearch
 
 from nitrofind.es_manager import ES_URL
 from nitrofind.es_schema import ensure_index
+
+INDEX_NAME = "car_articles"
 from nitrofind.scraper.blogs import BlogScraper
 from nitrofind.scraper.indexer import BulkIndexer, build_action
 from nitrofind.scraper.state import SQLiteStateManager
@@ -147,6 +149,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_CONFIG_PATH,
         help=f"Path to scraper config YAML (default: {DEFAULT_CONFIG_PATH})",
     )
+    parser.add_argument(
+        "--recreate",
+        action="store_true",
+        help="Delete and rebuild the car_articles index before scraping — required after a schema change",
+    )
     return parser.parse_args(argv)
 
 
@@ -167,6 +174,14 @@ def main(argv: list[str] | None = None) -> int:
 
         config = _load_config(args.config)
         client = _create_client()
+
+        # --recreate: drop and rebuild the index to apply schema changes (Pitfall 5)
+        if args.recreate:
+            logger.warning(
+                "Dropping car_articles index for re-creation (--recreate flag set)"
+            )
+            client.indices.delete(index=INDEX_NAME, ignore_unavailable=True)
+
         ensure_index(client)
         _ensure_data_dir()
 
