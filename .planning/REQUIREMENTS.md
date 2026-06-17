@@ -63,20 +63,20 @@
 
 | Requirement | Phase | Delivered in | Outcome |
 |-------------|-------|-------------|---------|
-| BUG-01 | — | — | — |
-| BUG-02 | — | — | — |
-| QURY-01 | — | — | — |
-| QURY-02 | — | — | — |
-| SORT-01 | — | — | — |
-| SORT-02 | — | — | — |
-| FILT-01 | — | — | — |
-| FILT-02 | — | — | — |
-| FILT-03 | — | — | — |
-| PAGE-01 | — | — | — |
-| PAGE-02 | — | — | — |
-| HIST-01 | — | — | — |
-| HIST-02 | — | — | — |
-| THME-01 | — | — | — |
+| BUG-01 | Phase 9 | — | — |
+| BUG-02 | Phase 9 | — | — |
+| QURY-01 | Phase 10 | — | — |
+| QURY-02 | Phase 10 | — | — |
+| SORT-01 | Phase 10 | — | — |
+| SORT-02 | Phase 10 | — | — |
+| FILT-01 | Phase 11 | — | — |
+| FILT-02 | Phase 11 | — | — |
+| FILT-03 | Phase 11 | — | — |
+| PAGE-01 | Phase 12 | — | — |
+| PAGE-02 | Phase 12 | — | — |
+| HIST-01 | Phase 13 | — | — |
+| HIST-02 | Phase 13 | — | — |
+| THME-01 | Phase 13 | — | — |
 
 ---
 *Defined: 2026-06-17 for milestone v1.2*

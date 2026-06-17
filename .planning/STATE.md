@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Search Quality & UX Polish
-status: planning
-last_updated: "2026-06-17T15:42:16.525Z"
+status: in_progress
+last_updated: "2026-06-17T00:00:00.000Z"
 last_activity: 2026-06-17
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Planning next milestone (v1.2)
+**Current focus:** Phase 9 — Article Rendering Fixes
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 9 — Article Rendering Fixes (next)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-17 — Milestone v1.2 started
+Status: Roadmap defined, ready to plan Phase 9
+Last activity: 2026-06-17 — v1.2 roadmap created (5 phases, 14 requirements)
+
+```
+[Phase 9] [Phase 10] [Phase 11] [Phase 12] [Phase 13]
+    ↑
+ next up
+```
+
+Progress: 0/5 phases complete (0%)
 
 ## Performance Metrics
 
