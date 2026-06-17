@@ -239,7 +239,7 @@ def build_search_body(
         "size": max(0, min(size, MAX_RESULT_SIZE)),   # T-03-02: clamp to [0, MAX_RESULT_SIZE]
         "from": max(0, from_),                        # clamp to non-negative
         "_source": [
-            "title", "url", "source_domain", "excerpt", "body",
+            "title", "url", "source_domain", "excerpt", "body", "body_html",
             "published_at", "word_count", "has_infobox",
             "manufacturer", "era_bucket", "body_style",
         ],

@@ -72,6 +72,7 @@ class ArticleResult:
     # Optional fields with safe defaults matching ES mapping types
     excerpt: str = ""
     body: str = ""          # W0-EXT-01: full article text for SRCH-03 detail pane
+    body_html: str = ""     # Phase 9: rendered HTML with <table> for article view
     published_at: str | None = None
     word_count: int = 0
     has_infobox: bool = False
@@ -113,6 +114,7 @@ class ArticleResult:
             score=score,
             excerpt=src.get("excerpt", ""),
             body=src.get("body", ""),  # W0-EXT-01
+            body_html=src.get("body_html", ""),
             published_at=src.get("published_at"),
             word_count=word_count,
             has_infobox=src.get("has_infobox", False),

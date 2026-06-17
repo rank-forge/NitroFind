@@ -160,7 +160,17 @@ function renderResults(results) {
 function openArticle(result) {
   articleTitle.textContent  = result.title;                          // textContent
   articleSource.textContent = result.source_domain;                  // textContent
-  articleBody.textContent   = result.body || "No content available."; // textContent — Pitfall 3
+  const htmlContent = result.body_html || "";
+  if (htmlContent) {
+    // innerHTML is intentional — renders <table>, <h2>, etc. (Phase 9, BUG-01).
+    // Matches existing excerpt.innerHTML precedent (D-10). Scraper strips
+    // <script>, <style>, and on* event handler attributes before storing.
+    // Local single-user offline app — XSS attack surface is near-zero.
+    articleBody.innerHTML = htmlContent;
+  } else {
+    // Fallback for articles without body_html (scraped before Phase 9)
+    articleBody.textContent = result.body || "No content available.";
+  }
   transitionTo("article");
 }
 

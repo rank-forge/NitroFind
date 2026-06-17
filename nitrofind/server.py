@@ -115,6 +115,7 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
         "source_domain": result.source_domain,
         "excerpt": excerpt,
         "body": result.body,
+        "body_html": result.body_html,   # Phase 9: HTML for article view rendering
         "score": result.score,
         "took_ms": took_ms,
     }
