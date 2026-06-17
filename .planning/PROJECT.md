@@ -38,14 +38,28 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - ✓ REST API endpoints `/api/search` and `/api/status` — v1.1
 - ✓ PyQt6 removed from dependencies — v1.1
 
-### Active (v1.2+)
+### Active (v1.2)
+
+- [ ] Article rendering: Wikipedia/blog tables not displayed in detail view — v1.2
+- [ ] Article rendering: Body text too large (link text being ingested with article body) — v1.2
+- [ ] Fuzzy search — fuzziness: "AUTO" on multi_match — v1.2
+- [ ] Phrase search — detect quoted queries → route to match_phrase — v1.2
+- [ ] Alternative sort buttons: "By date", "By relevance", "By size" — v1.2
+- [ ] Year range filter (production_start / production_end) — v1.2
+- [ ] Country of origin filter — v1.2
+- [ ] Pagination (previous / next result pages) — v1.2
+- [ ] Search history (last 10 queries, localStorage) — v1.2
+- [ ] Dark / light mode toggle in header — v1.2
+
+### Deferred (v1.3+)
 
 - [ ] Empirical tuning of function_score weights against real indexed data (carried from v1.0)
 - [ ] Windows clean-machine smoke test (carried from v1.0 — Linux/WSL only for v1.1)
 - [ ] Full installer / startup shortcut (Windows .bat, macOS .command)
-- [ ] Light/dark theme toggle in the browser UI
-- [ ] Search history (last N queries, persisted in localStorage)
 - [ ] `/api/article/{id}` endpoint for fetching individual articles by ES _id
+- [ ] Favorites — save articles for later reading in localStorage
+- [ ] Export results — download results as JSON or CSV
+- [ ] Score explainer — "Why this result?" ES score breakdown
 
 ### Out of Scope
 
@@ -55,6 +69,21 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - Periodic auto-update — scraper is a one-shot tool; re-running it refreshes the database manually
 - User accounts or saved searches — single-user local tool, no auth complexity needed
 - PyInstaller packaging — removed in v1.1; `python main.py` is the distribution model
+
+## Current Milestone: v1.2 Search Quality & UX Polish
+
+**Goal:** Fix article rendering bugs and add smarter search, richer filtering, and UX controls to make NitroFind feel like a complete research tool.
+
+**Target features:**
+- Article rendering fixes: Wikipedia/blog tables not rendered; text too large (link text ingested)
+- Fuzzy search — fuzziness: "AUTO" on multi_match (tolerate typos)
+- Phrase search — detect quoted queries → match_phrase routing
+- Alternative sort buttons: "By date", "By relevance", "By size"
+- Year range filter (production_start / production_end, already in schema)
+- Country of origin filter
+- Pagination (previous / next result pages)
+- Search history (last 10 queries, localStorage)
+- Dark / light mode toggle in header
 
 ## Context
 
@@ -108,4 +137,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 after v1.1 milestone*
+*Last updated: 2026-06-17 — v1.2 milestone started*
