@@ -262,10 +262,10 @@ def test_build_search_body_from_param():
 
 
 def test_build_search_body_source_fields():
-    """build_search_body includes expected _source fields."""
+    """build_search_body includes expected _source fields (Phase 9 adds body_html)."""
     body = build_search_body("Ferrari")
     expected_source = [
-        "title", "url", "source_domain", "excerpt", "body",
+        "title", "url", "source_domain", "excerpt", "body", "body_html",
         "published_at", "word_count", "has_infobox",
         "manufacturer", "era_bucket", "body_style",
     ]

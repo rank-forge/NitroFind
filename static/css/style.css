@@ -305,3 +305,21 @@ body[data-state="article"] .article-view { display: block; }
   line-height: 1.7;
   white-space: pre-wrap;
 }
+
+/* Phase 9 — table legibility for rendered body_html (Wikipedia infoboxes, wikitables) */
+#article-body table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  white-space: normal;   /* override pre-wrap inside tables so cell text wraps */
+}
+
+#article-body th,
+#article-body td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+}
+
+#article-body th {
+  text-align: left;
+  background-color: var(--bg-surface);
+}
