@@ -44,6 +44,7 @@ def client_with_search(monkeypatch):
                         "source_domain": "en.wikipedia.org",
                         "excerpt": "The Ford Mustang is a pony car.",
                         "body": "Full text.",
+                        "body_html": "<p>Full text.</p>",
                     },
                     "highlight": {
                         "body": ["The <b>Mustang</b> is a pony car."]
@@ -114,7 +115,9 @@ def test_search_result_shape(client_with_search):
     assert resp.status_code == 200
     data = resp.get_json()
     item = data[0]
-    assert set(item.keys()) == {"title", "url", "source_domain", "excerpt", "score", "took_ms"}
+    assert set(item.keys()) == {
+        "title", "url", "source_domain", "excerpt", "body", "body_html", "score", "took_ms"
+    }
     assert item["title"] == "Ford Mustang"
     assert item["took_ms"] == 12  # from mock took=12
 

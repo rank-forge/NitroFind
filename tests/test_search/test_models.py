@@ -60,7 +60,7 @@ def test_article_result_all_fields():
         "excerpt", "published_at", "word_count", "has_infobox",
         "manufacturer", "era_bucket", "body_style",
         "highlight_title", "highlight_body",
-        "body",
+        "body", "body_html",
     }
     import dataclasses
     actual_fields = {f.name for f in dataclasses.fields(ArticleResult)}
@@ -161,6 +161,32 @@ def test_article_result_body_default_empty_string():
     """ArticleResult.body defaults to empty string (W0-EXT-01)."""
     r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
     assert r.body == ""
+
+
+def test_body_html_field_default():
+    """ArticleResult.body_html defaults to empty string (Phase 9)."""
+    r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
+    assert r.body_html == ""
+
+
+def test_article_result_body_html_from_es_hit():
+    """from_es_hit populates body_html from _source and falls back to empty string when missing."""
+    hit_with_body_html = {
+        "_score": 1.0,
+        "_source": {
+            "title": "T", "url": "U", "source_domain": "D",
+            "body_html": "<div><table><tr><td>Spec</td></tr></table></div>",
+        },
+    }
+    r = ArticleResult.from_es_hit(hit_with_body_html)
+    assert r.body_html == "<div><table><tr><td>Spec</td></tr></table></div>"
+
+    hit_no_body_html = {
+        "_score": 1.0,
+        "_source": {"title": "T", "url": "U", "source_domain": "D"},
+    }
+    r2 = ArticleResult.from_es_hit(hit_no_body_html)
+    assert r2.body_html == ""
 
 
 def test_article_result_body_from_es_hit():

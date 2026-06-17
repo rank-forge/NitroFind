@@ -56,6 +56,16 @@ def test_mapping_has_required_fields():
     assert props["specs"]["type"] == "flattened"
 
 
+def test_body_html_field_present():
+    """Phase 9 / BUG-01: body_html field exists with type text and index=False."""
+    props = CAR_ARTICLES_MAPPING["properties"]
+    assert "body_html" in props, "body_html field missing from CAR_ARTICLES_MAPPING"
+    assert props["body_html"]["type"] == "text"
+    assert props["body_html"]["index"] is False, (
+        f"body_html must have index=False (not tokenized); got {props['body_html'].get('index')!r}"
+    )
+
+
 def test_dynamic_is_string_false():
     """Pitfall 6: dynamic must be the string 'false', not Python False."""
     assert CAR_ARTICLES_MAPPING["dynamic"] == "false"
