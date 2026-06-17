@@ -50,7 +50,11 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   1. Opening a Wikipedia article in the detail pane shows rendered tables (make/model specs, production years) rather than missing or stripped table content
   2. Article body text contains only prose — navigation menus, sidebar links, and anchor text are absent from the displayed content
   3. A Hagerty blog article opened in the detail pane similarly shows any embedded tables and contains no navigation link text
-**Plans**: TBD
+**Plans**: 4 plans
+  - [ ] 09-01-PLAN.md — Failing-test scaffold (Wave 0: RED tests for strip_nav_sections, _clean_wikipedia_html, body_html)
+  - [ ] 09-02-PLAN.md — Scraper + ES schema (BUG-01 HTML capture, BUG-02 noise removal, body_html field, --recreate flag)
+  - [ ] 09-03-PLAN.md — Search/API/frontend (body_html through model→API→innerHTML render + table CSS)
+  - [ ] 09-04-PLAN.md — Index re-create + re-scrape + human UI verification (checkpoint)
 
 ### Phase 10: Search Quality & Sort
 **Goal**: Users get correct results despite typos and can control result ordering
@@ -111,7 +115,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 6. Server Lifecycle & Cleanup | v1.1 | 3/3 | Complete | 2026-06-03 |
 | 7. Search REST API | v1.1 | 1/1 | Complete | 2026-06-03 |
 | 8. Browser Search UI | v1.1 | 3/3 | Complete | 2026-06-04 |
-| 9. Article Rendering Fixes | v1.2 | 0/? | Not started | - |
+| 9. Article Rendering Fixes | v1.2 | 0/4 | Planned | - |
 | 10. Search Quality & Sort | v1.2 | 0/? | Not started | - |
 | 11. Extended Filtering | v1.2 | 0/? | Not started | - |
 | 12. Pagination | v1.2 | 0/? | Not started | - |
