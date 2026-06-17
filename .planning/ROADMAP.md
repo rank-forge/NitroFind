@@ -51,7 +51,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   2. Article body text contains only prose — navigation menus, sidebar links, and anchor text are absent from the displayed content
   3. A Hagerty blog article opened in the detail pane similarly shows any embedded tables and contains no navigation link text
 **Plans**: 4 plans
-  - [ ] 09-01-PLAN.md — Failing-test scaffold (Wave 0: RED tests for strip_nav_sections, _clean_wikipedia_html, body_html)
+  - [x] 09-01-PLAN.md — Failing-test scaffold (Wave 0: RED tests for strip_nav_sections, _clean_wikipedia_html, body_html)
   - [ ] 09-02-PLAN.md — Scraper + ES schema (BUG-01 HTML capture, BUG-02 noise removal, body_html field, --recreate flag)
   - [ ] 09-03-PLAN.md — Search/API/frontend (body_html through model→API→innerHTML render + table CSS)
   - [ ] 09-04-PLAN.md — Index re-create + re-scrape + human UI verification (checkpoint)
