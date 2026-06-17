@@ -609,7 +609,7 @@ if (htmlContent) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should body_html replace body for display, or always be a fallback?**
    - What we know: articles scraped before Phase 9 will have no `body_html` field; `body` (plain text) exists for all current articles
