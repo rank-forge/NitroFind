@@ -30,14 +30,75 @@ from datetime import datetime, timezone
 from typing import Generator, Optional
 
 import requests
+from bs4 import BeautifulSoup
 from mediawikiapi import MediaWikiAPI
 
-from nitrofind.scraper.cleaner import compute_era_bucket, make_excerpt, parse_year
+from nitrofind.scraper.cleaner import compute_era_bucket, make_excerpt, parse_year, strip_nav_sections
 from nitrofind.scraper.state import SQLiteStateManager
 
 logger = logging.getLogger(__name__)
 
 MEDIAWIKI_API_URL = "https://en.wikipedia.org/w/api.php"
+
+# Noise selectors to strip from Wikipedia rendered HTML before storing (BUG-01)
+# Pitfall 2: must include BOTH .navbox and .navbox-styles
+_WIKIPEDIA_NOISE_SELECTORS = [
+    ".navbox", ".navbox-styles",   # Pitfall 2: must include both
+    ".mw-editsection",
+    ".reference", ".reflist", ".refbegin",
+    "[role='navigation']",
+    ".noprint", ".mbox-small", ".hatnote", ".shortdescription",
+    "style", "script", ".toc",
+    ".sistersitebox", ".catlinks", ".printfooter", ".mw-indicators",
+]
+
+
+def _clean_wikipedia_html(raw_html: str) -> str:
+    """Clean Wikipedia rendered HTML for storage as body_html.
+
+    Strips navboxes, edit links, references, TOC, and other MediaWiki
+    furniture. Fixes relative URLs to absolute. Strips event handler
+    attributes and data: URIs (XSS hygiene per T-09-02-T1).
+
+    Args:
+        raw_html: Raw HTML from MediaWiki Parse API parse.text["*"].
+
+    Returns:
+        Cleaned HTML string of the .mw-parser-output element,
+        or empty string if .mw-parser-output is absent.
+    """
+    soup = BeautifulSoup(raw_html, "lxml")
+    for selector in _WIKIPEDIA_NOISE_SELECTORS:
+        for el in soup.select(selector):
+            el.decompose()
+
+    main = soup.select_one(".mw-parser-output")
+    if not main:
+        return ""
+
+    # Fix relative Wikipedia links → absolute URLs
+    for tag in main.select("a[href]"):
+        href = tag.get("href", "")
+        if href.startswith("/wiki/"):
+            tag["href"] = "https://en.wikipedia.org" + href
+        elif href.startswith("#"):
+            tag["href"] = "#"
+
+    # Fix protocol-relative image srcs
+    for img in main.select("img[src]"):
+        src = img.get("src", "")
+        if src.startswith("//"):
+            img["src"] = "https:" + src
+
+    # Strip event handler attributes and data: URIs (T-09-02-T1 security hygiene)
+    for tag in main.find_all(True):
+        for attr in list(tag.attrs):
+            if attr.startswith("on"):
+                del tag[attr]
+            elif attr in ("src", "href") and str(tag.get(attr, ""))[:5] == "data:":
+                del tag[attr]
+
+    return str(main)
 
 
 class WikipediaScraper:
@@ -244,6 +305,35 @@ class WikipediaScraper:
             return [item["title"] for item in results]
         return [item["pageid"] for item in results]
 
+    def _fetch_html_body(self, pageid: int) -> str:
+        """Fetch rendered HTML for pageid via MediaWiki Parse API.
+
+        Uses the existing self._session (rate-limited, correct User-Agent).
+        Always uses pageid= (not page=title) to prevent redirect aliasing
+        (Pitfall 4 / consistent with Pitfall 1 defence in _fetch_and_build_doc).
+        Returns cleaned HTML string, or empty string on failure (T-09-02-I1 accept).
+        """
+        try:
+            resp = self._session.get(
+                MEDIAWIKI_API_URL,
+                params={
+                    "action": "parse",
+                    "pageid": pageid,      # always pageid — Pitfall 4 (not page=title)
+                    "prop": "text",
+                    "disabletoc": "1",
+                    "format": "json",
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            raw_html = data["parse"]["text"]["*"]
+        except Exception as exc:
+            logger.warning("Parse API failed for pageid=%s: %s: %s", pageid, type(exc).__name__, exc)
+            return ""
+
+        return _clean_wikipedia_html(raw_html)
+
     def _fetch_and_build_doc(self, pageid: int) -> Optional[dict]:
         """Fetch a Wikipedia page by pageid and build a document dict.
 
@@ -275,7 +365,11 @@ class WikipediaScraper:
         if not infobox:
             return None
 
-        body_text = page.content  # plain text — mediawikiapi strips wiki markup (L-05)
+        # BUG-02 fix: strip nav sections (References, External links, etc.) from plain text
+        body_text = strip_nav_sections(page.content)
+
+        # BUG-01 fix: fetch rendered HTML with <table> elements preserved
+        body_html = self._fetch_html_body(pageid)
 
         # Multi-key fallback chain for production year (RESEARCH.md Open Question 3)
         raw_production = (
@@ -329,8 +423,9 @@ class WikipediaScraper:
             "word_count": len(body_text.split()),
             "has_infobox": True,
             "image_count": len(page.images) if page.images else 0,
-            # SCHEMA-03: full-text body + excerpt
+            # SCHEMA-03: full-text body + excerpt + stored HTML
             "body": body_text,
+            "body_html": body_html,                # BUG-01: stored HTML with <table> elements (index:false)
             "excerpt": make_excerpt(body_text),    # L-06: <=300 chars at word boundary
             # SCHEMA-04: automotive facet fields
             "manufacturer": str(

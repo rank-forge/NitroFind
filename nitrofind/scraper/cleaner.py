@@ -5,12 +5,14 @@ Exports:
   make_excerpt       — truncates body text to ≤300 chars at word boundary (L-06)
   compute_era_bucket — derives decade label from production_start year (L-07)
   parse_year         — extracts 4-digit year from infobox field strings
+  strip_nav_sections — removes Wikipedia navigation/reference sections from plain text
 
 Requirement coverage:
   L-05: body field contains plain text only (callers must pass pre-stripped text)
   L-06: excerpt capped at 300 characters, no mid-word cut (Pitfall 7)
   L-07: era_bucket formula f"{(year // 10) * 10}s"; "Unknown" when year is None
   SCHEMA-03: enforced by make_excerpt + body passthrough
+  BUG-02: strip_nav_sections removes References/External links/See also from Wikipedia body
 
 Anti-patterns avoided:
   Pitfall 7: excerpt never cuts mid-word — uses rsplit(" ", 1)[0] for word-boundary trim
@@ -70,3 +72,43 @@ def parse_year(raw: str) -> Optional[int]:
         return None
     match = re.search(r"\b(19|20)\d{2}\b", raw)
     return int(match.group()) if match else None
+
+
+# Navigation section names to strip from Wikipedia plain-text extracts (BUG-02)
+_WIKIPEDIA_NAV_SECTIONS = frozenset({
+    "references",
+    "external links",
+    "see also",
+    "further reading",
+    "bibliography",
+    "notes",
+    "footnotes",
+})
+
+
+def strip_nav_sections(content: str) -> str:
+    """Remove Wikipedia navigation/reference sections from plain-text extract.
+
+    Splits on section headers (== Name ==) and drops all content
+    after the first header whose name is in _WIKIPEDIA_NAV_SECTIONS.
+    Section headers for real content sections are preserved.
+
+    Args:
+        content: Plain text from mediawikiapi page.content (== headings included).
+
+    Returns:
+        Filtered content string with nav sections removed.
+    """
+    lines = content.split("\n")
+    result = []
+    in_nav_section = False
+    for line in lines:
+        header_match = re.match(r"^={1,6}\s*(.+?)\s*={1,6}$", line.strip())
+        if header_match:
+            section_name = header_match.group(1).strip().lower()
+            in_nav_section = section_name in _WIKIPEDIA_NAV_SECTIONS
+            if not in_nav_section:
+                result.append(line)
+        elif not in_nav_section:
+            result.append(line)
+    return "\n".join(result).strip()
