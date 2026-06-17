@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from nitrofind.scraper.wikipedia import WikipediaScraper
+from nitrofind.scraper.wikipedia import WikipediaScraper, _clean_wikipedia_html
 
 # Sample config for all tests — rate_limit_seconds=0 so time.sleep is instant
 SAMPLE_CONFIG = {
@@ -238,6 +238,74 @@ def test_user_agent_set_from_config():
     assert scraper._session.headers.get("User-Agent") == "NitroFind/1.0 (test)" or \
         scraper._session.headers["User-Agent"] == "NitroFind/1.0 (test)", \
         f"Expected session User-Agent == 'NitroFind/1.0 (test)', got {dict(scraper._session.headers)!r}"
+
+
+# ---------------------------------------------------------------------------
+# BUG-01: _clean_wikipedia_html
+# ---------------------------------------------------------------------------
+
+
+def test_clean_wikipedia_html_preserves_tables():
+    """BUG-01: _clean_wikipedia_html returns HTML string containing <table> elements."""
+    raw_html = (
+        '<div class="mw-parser-output">'
+        '<table class="infobox hproduct"><tr><td>Ferrari</td></tr></table>'
+        '<p>Article body.</p>'
+        '</div>'
+    )
+    result = _clean_wikipedia_html(raw_html)
+    assert "<table" in result
+    assert "Ferrari" in result
+
+
+def test_clean_wikipedia_html_removes_navboxes():
+    """BUG-01: _clean_wikipedia_html removes .navbox elements (Pitfall 2: also removes .navbox-styles)."""
+    raw_html = (
+        '<div class="mw-parser-output">'
+        '<p>Article body.</p>'
+        '<div class="navbox">navigation stuff</div>'
+        '<div class="navbox-styles">CSS stuff</div>'
+        '</div>'
+    )
+    result = _clean_wikipedia_html(raw_html)
+    assert "navigation stuff" not in result
+    assert "CSS stuff" not in result
+    assert "Article body." in result
+
+
+def test_clean_wikipedia_html_empty_on_no_mw_parser_output():
+    """_clean_wikipedia_html returns empty string when .mw-parser-output is absent."""
+    result = _clean_wikipedia_html("<div>no parser output wrapper</div>")
+    assert result == ""
+
+
+# ---------------------------------------------------------------------------
+# BUG-01: _fetch_and_build_doc returns body_html key
+# ---------------------------------------------------------------------------
+
+
+def test_fetch_and_build_doc_returns_body_html():
+    """BUG-01: _fetch_and_build_doc returns a doc dict with 'body_html' key."""
+    mock_page = MagicMock()
+    mock_page.pageid = 12345
+    mock_page.title = "Ferrari 308"
+    mock_page.url = "https://en.wikipedia.org/wiki/Ferrari_308"
+    mock_page.content = "A real plain text body about Ferrari 308"
+    mock_page.images = []
+    mock_page.infobox = {"manufacturer": "Ferrari", "production": "1975 to 1985"}
+
+    mock_wiki = MagicMock()
+    mock_wiki.page.return_value = mock_page
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+
+    with patch("nitrofind.scraper.wikipedia.MediaWikiAPI", return_value=mock_wiki), \
+         patch("nitrofind.scraper.wikipedia.WikipediaScraper._fetch_html_body", return_value="<div>html</div>"):
+        scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
+        doc = scraper._fetch_and_build_doc(pageid=12345)
+
+    assert doc is not None
+    assert "body_html" in doc
 
 
 # ---------------------------------------------------------------------------

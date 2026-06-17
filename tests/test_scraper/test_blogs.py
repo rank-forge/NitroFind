@@ -61,6 +61,20 @@ _VALID_ARTICLE_HTML = (
     "</body></html>"
 )
 
+# HTML with noise elements (breadcrumb, related-articles, newsletter-signup)
+_ARTICLE_WITH_NOISE_HTML = (
+    "<html><body>"
+    "<article class='post'>"
+    "<div class='breadcrumb'>Home > Media > Article</div>"
+    "<h1>Test Title</h1>"
+    "<p>Real body text about Ferrari that is sufficiently long to clear the "
+    "100-char threshold for the test of valid article content.</p>"
+    "<div class='related-articles'>Related: Other car article</div>"
+    "<div class='newsletter-signup'>Subscribe to our newsletter</div>"
+    "</article>"
+    "</body></html>"
+)
+
 # Minimal listing HTML with one article link pointing to the verified domain
 _LISTING_HTML = (
     "<html><body>"
@@ -363,6 +377,61 @@ def test_state_visited_url_is_skipped():
     # Article URL must NOT have been fetched
     assert article_url not in call_tracker, (
         f"Article URL was fetched despite is_visited=True: {call_tracker}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Security/etiquette: User-Agent
+# ---------------------------------------------------------------------------
+
+
+def test_doc_has_body_html_field():
+    """BUG-01: _fetch_article returns doc with 'body_html' key containing HTML."""
+    scraper = _make_scraper()
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.return_value = _make_mock_response(text=_VALID_ARTICLE_HTML)
+    scraper._session = mock_session
+
+    target = _SAMPLE_CONFIG["blogs"]["targets"][0]
+    doc = scraper._fetch_article("https://www.hagerty.com/media/ferrari-history", target)
+
+    assert doc is not None
+    assert "body_html" in doc, f"Expected 'body_html' key in doc; got keys: {set(doc.keys())}"
+    assert "<" in doc["body_html"], "body_html should contain HTML tags"
+
+
+def test_breadcrumb_excluded_from_body():
+    """BUG-02: breadcrumb text is not included in body (plain text) field."""
+    scraper = _make_scraper()
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.return_value = _make_mock_response(text=_ARTICLE_WITH_NOISE_HTML)
+    scraper._session = mock_session
+
+    target = _SAMPLE_CONFIG["blogs"]["targets"][0]
+    doc = scraper._fetch_article("https://www.hagerty.com/media/ferrari-noise", target)
+
+    assert doc is not None
+    assert "Home > Media > Article" not in doc["body"], (
+        f"Breadcrumb text found in body: {doc['body']!r}"
+    )
+
+
+def test_related_articles_excluded_from_body():
+    """BUG-02: related-articles text is not included in body (plain text) field."""
+    scraper = _make_scraper()
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.return_value = _make_mock_response(text=_ARTICLE_WITH_NOISE_HTML)
+    scraper._session = mock_session
+
+    target = _SAMPLE_CONFIG["blogs"]["targets"][0]
+    doc = scraper._fetch_article("https://www.hagerty.com/media/ferrari-noise", target)
+
+    assert doc is not None
+    assert "Related: Other car article" not in doc["body"], (
+        f"Related-articles text found in body: {doc['body']!r}"
     )
 
 

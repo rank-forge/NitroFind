@@ -13,7 +13,7 @@ Requirement coverage:
 """
 
 import pytest
-from nitrofind.scraper.cleaner import make_excerpt, compute_era_bucket, parse_year
+from nitrofind.scraper.cleaner import make_excerpt, compute_era_bucket, parse_year, strip_nav_sections
 
 # ---------------------------------------------------------------------------
 # L-06, Pitfall 7: excerpt capping and word-boundary cut
@@ -101,3 +101,48 @@ def test_parse_year_returns_none_for_empty_or_no_year():
     """parse_year returns None for empty string or string with no valid year."""
     assert parse_year("") is None
     assert parse_year("no year here") is None
+
+
+# ---------------------------------------------------------------------------
+# BUG-02: strip_nav_sections
+# ---------------------------------------------------------------------------
+
+
+def test_strip_nav_sections_removes_references():
+    """BUG-02: strip_nav_sections removes the 'References' section from Wikipedia plain text."""
+    content = (
+        "== Design ==\n"
+        "The car has a V8 engine.\n"
+        "== References ==\n"
+        "* [1] Some reference\n"
+        "* [2] Another reference\n"
+    )
+    result = strip_nav_sections(content)
+    assert "References" not in result
+    assert "Design" in result
+    assert "V8 engine" in result
+
+
+def test_strip_nav_sections_removes_external_links():
+    """BUG-02: strip_nav_sections removes 'External links' section."""
+    content = "== Performance ==\nFast.\n== External links ==\nhttps://example.com\n"
+    result = strip_nav_sections(content)
+    assert "External links" not in result
+    assert "https://example.com" not in result
+    assert "Performance" in result
+    assert "Fast." in result
+
+
+def test_strip_nav_sections_preserves_content_headings():
+    """BUG-02: strip_nav_sections keeps real content sections like 'Design', 'Engine'."""
+    content = "== Design ==\nBody text.\n== Engine ==\nPower specs.\n"
+    result = strip_nav_sections(content)
+    assert "Design" in result
+    assert "Body text." in result
+    assert "Engine" in result
+    assert "Power specs." in result
+
+
+def test_strip_nav_sections_empty_input():
+    """strip_nav_sections returns empty string for empty input."""
+    assert strip_nav_sections("") == ""
