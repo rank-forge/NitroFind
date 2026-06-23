@@ -176,6 +176,7 @@ class WikipediaScraper:
 
             doc = self._fetch_and_build_doc(pageid)
             if doc is None:
+                time.sleep(self._rate_limit)  # respect rate limit even on fetch failure
                 continue
 
             # Record state BEFORE yield so state is durable even if the caller
