@@ -399,7 +399,7 @@ body = build_search_body(q, filters=filters, sort=sort)
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should phrase search also apply function_score boosts?**
    - What we know: The current function_score functions (recency, length, infobox) are independent of query type.
