@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Search Quality & UX Polish
-status: executing
-last_updated: "2026-06-26T14:42:12Z"
-last_activity: 2026-06-26 -- Phase 10 Plan 02 at checkpoint:human-verify (Tasks 1-2 committed)
+status: verifying
+last_updated: "2026-06-26T16:57:55.104Z"
+last_activity: 2026-06-26
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -20,22 +20,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Phase 10 — search-quality-sort
+**Current focus:** Phase 11 — extended-filtering (next)
 
 ## Current Position
 
-Phase: 10 (search-quality-sort) — EXECUTING
-Plan: 2 of 2
-Status: Awaiting human-verify checkpoint (10-02 Task 3)
-Last activity: 2026-06-26 -- Phase 10 Plan 02 Tasks 1-2 committed; paused at checkpoint:human-verify
+Phase: 10 (search-quality-sort) — COMPLETE
+Plan: 2 of 2 — all plans done
+Status: Phase 10 complete; Phase 11 (Extended Filtering) is next
+Last activity: 2026-06-26 -- Phase 10 Plan 02 complete (Task 3 human-verify approved; SORT-01 done; Phase 10 fully shipped)
 
 ```
-[Phase 9 ✓] [Phase 10] [Phase 11] [Phase 12] [Phase 13]
-                 ↑
-              next up
+[Phase 9 ✓] [Phase 10 ✓] [Phase 11] [Phase 12] [Phase 13]
+                               ↑
+                            next up
 ```
 
-Progress: 1/5 phases complete (20%)
+Progress: [██████████] 100% (Phase 10 complete)
 
 ## Performance Metrics
 
@@ -61,6 +61,13 @@ Recent decisions from v1.1:
 - Linux/WSL-only for v1.1 — all `sys.platform == 'win32'` branches removed from `es_manager.py`
 - Module-level state dict pattern extended to `es_client` (GIL-safe single writer)
 - `data-state` CSS attribute selectors for SPA view switching — no JS show/hide
+
+Recent decisions from Phase 10 (v1.2):
+
+- Fuzzy search uses `fuzziness: "AUTO"` with `prefix_length: 2` to reduce false positives on short tokens
+- Phrase routing: query wrapped in `match_phrase` when surrounded by double-quotes
+- Sort choice persists across new queries — `currentSort` never reset in `runSearch` (user preference)
+- `sort=` param omitted for relevance (ES default `_score desc`), mirroring empty-filter-strip pattern
 
 ### Pending Todos
 

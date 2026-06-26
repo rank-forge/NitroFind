@@ -18,7 +18,7 @@
 
 ### Sort Controls (SORT)
 
-- [ ] **SORT-01**: User can sort results by relevance (default), newest-first (date), or largest-first (size) via toggle buttons in the search UI
+- [x] **SORT-01**: User can sort results by relevance (default), newest-first (date), or largest-first (size) via toggle buttons in the search UI
 - [ ] **SORT-02**: `GET /api/search` accepts an optional `sort` param (`relevance` | `date` | `size`) and applies the corresponding ES sort order
 
 ### Filtering (FILT)
