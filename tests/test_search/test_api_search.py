@@ -278,7 +278,7 @@ def test_sort_date_passed_to_es(monkeypatch):
     resp = client.get("/api/search?q=mustang&sort=date")
     assert resp.status_code == 200
     call_kwargs = mock_es.search.call_args.kwargs
-    assert call_kwargs["sort"] == [{"published_at": {"order": "desc"}}]
+    assert call_kwargs["sort"] == [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
 
 
 def test_sort_size_passed_to_es(monkeypatch):

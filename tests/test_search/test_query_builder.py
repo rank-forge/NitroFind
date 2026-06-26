@@ -394,7 +394,7 @@ def test_build_search_body_sort_date():
     """build_search_body(sort='date') includes published_at desc sort. [SORT-02]"""
     body = build_search_body("Ferrari", sort="date")
     assert "sort" in body
-    assert body["sort"] == [{"published_at": {"order": "desc"}}]
+    assert body["sort"] == [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
 
 
 def test_build_search_body_sort_size():
