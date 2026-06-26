@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Search Quality & UX Polish
-status: verifying
+status: ready_to_plan
 last_updated: "2026-06-26T16:57:55.104Z"
 last_activity: 2026-06-26
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
   completed_plans: 6
-  percent: 100
+  percent: 60
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-04)
 
 ## Current Position
 
-Phase: 10 (search-quality-sort) — COMPLETE
-Plan: 2 of 2 — all plans done
-Status: Phase 10 complete; Phase 11 (Extended Filtering) is next
-Last activity: 2026-06-26 -- Phase 10 Plan 02 complete (Task 3 human-verify approved; SORT-01 done; Phase 10 fully shipped)
+Phase: 11
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-26
 
 ```
 [Phase 9 ✓] [Phase 10 ✓] [Phase 11] [Phase 12] [Phase 13]
@@ -41,7 +41,7 @@ Progress: [██████████] 100% (Phase 10 complete)
 
 **Velocity (v1.1):**
 
-- Total plans completed: 7
+- Total plans completed: 9
 - Timeline: 2 days (2026-06-03 → 2026-06-04)
 
 **All-time:**

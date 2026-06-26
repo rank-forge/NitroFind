@@ -13,13 +13,13 @@
 
 ### Search Quality (QURY)
 
-- [ ] **QURY-01**: User searches with typos ("Ferari", "Lamborgini") and gets correct results — fuzziness: "AUTO" applied to multi_match query
-- [ ] **QURY-02**: User wraps a phrase in quotes ("V8 engine") and gets phrase-match results — query routed automatically to match_phrase
+- [x] **QURY-01**: User searches with typos ("Ferari", "Lamborgini") and gets correct results — fuzziness: "AUTO" applied to multi_match query
+- [x] **QURY-02**: User wraps a phrase in quotes ("V8 engine") and gets phrase-match results — query routed automatically to match_phrase
 
 ### Sort Controls (SORT)
 
 - [x] **SORT-01**: User can sort results by relevance (default), newest-first (date), or largest-first (size) via toggle buttons in the search UI
-- [ ] **SORT-02**: `GET /api/search` accepts an optional `sort` param (`relevance` | `date` | `size`) and applies the corresponding ES sort order
+- [x] **SORT-02**: `GET /api/search` accepts an optional `sort` param (`relevance` | `date` | `size`) and applies the corresponding ES sort order
 
 ### Filtering (FILT)
 

@@ -118,7 +118,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 7. Search REST API | v1.1 | 1/1 | Complete | 2026-06-03 |
 | 8. Browser Search UI | v1.1 | 3/3 | Complete | 2026-06-04 |
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
-| 10. Search Quality & Sort | v1.2 | 2/2 | Complete   | 2026-06-26 |
+| 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 0/? | Not started | - |
 | 12. Pagination | v1.2 | 0/? | Not started | - |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
