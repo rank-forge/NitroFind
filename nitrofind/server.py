@@ -45,6 +45,9 @@ from nitrofind.search.query_builder import build_search_body, build_filter_claus
 logger = logging.getLogger("nitrofind.server")
 
 _pkg_dir = os.path.dirname(os.path.abspath(__file__))
+
+# SORT-02: allowlist for sort param (T-10-SORT mitigation — unknown values coerced to None)
+_VALID_SORTS: frozenset[str] = frozenset({"relevance", "date", "size"})
 app = Flask(
     __name__,
     template_folder=os.path.join(_pkg_dir, "..", "templates"),
@@ -150,12 +153,17 @@ def api_search():
         era_bucket=request.args.get("era_bucket") or None,
         body_style=request.args.get("body_style") or None,
     )
-    body = build_search_body(q, filters=filters)
+    # SORT-02: read sort param with allowlist (T-10-SORT mitigation)
+    sort = request.args.get("sort") or None
+    if sort not in _VALID_SORTS:
+        sort = None  # unknown value → treat as relevance (silently coerced)
+    body = build_search_body(q, filters=filters, sort=sort)
 
     try:
         resp = state["es_client"].search(
             index="car_articles",
             query=body["query"],
+            sort=body.get("sort"),        # SORT-02: None → ES default _score desc; list → field sort
             highlight=body.get("highlight"),
             source=body.get("_source"),   # 'source' not '_source' — known naming difference (Pitfall 1)
             size=body.get("size", 20),
