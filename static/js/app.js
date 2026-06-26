@@ -26,6 +26,7 @@ let uiState = "home";        // "home" | "results" | "article"
 let selectedIndex = -1;      // keyboard nav cursor
 let currentQuery = "";
 let currentFilters = { manufacturer: "", era_bucket: "", body_style: "" };
+let currentSort = "relevance";   // "relevance" | "date" | "size"
 let currentResults = [];
 let debounceTimer = null;
 let abortController = null;
@@ -45,6 +46,7 @@ const filterMfr       = document.getElementById("filter-manufacturer");
 const filterEra       = document.getElementById("filter-era");
 const filterBody      = document.getElementById("filter-body");
 const backBtn         = document.getElementById("back-btn");
+const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
 const articleBody     = document.getElementById("article-body");
@@ -90,6 +92,10 @@ async function runSearch(q) {
   // Strip empty filter values — prevents sending manufacturer= (Pitfall 5)
   for (const [k, v] of [...params.entries()]) {
     if (!v) params.delete(k);
+  }
+  // Append sort param only when non-default (omit for relevance = ES default _score desc)
+  if (currentSort && currentSort !== "relevance") {
+    params.set("sort", currentSort);
   }
 
   try {
@@ -193,6 +199,14 @@ function onFilterChange() {
 filterMfr.addEventListener("change", onFilterChange);
 filterEra.addEventListener("change", onFilterChange);
 filterBody.addEventListener("change", onFilterChange);
+
+function onSortChange(newSort) {
+  currentSort = newSort;
+  sortBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.sort === newSort));
+  if (currentQuery) runSearch(currentQuery);
+}
+
+sortBtns.forEach(btn => btn.addEventListener("click", () => onSortChange(btn.dataset.sort)));
 
 // ---------------------------------------------------------------------------
 // Keyboard navigation (UIPL-03, D-11)
