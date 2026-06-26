@@ -72,14 +72,35 @@ def build_function_score_query(
         dict with single top-level key "function_score" containing the full
         function_score query structure ready for use as an ES query parameter.
     """
-    # Base query: multi_match on title (boosted 3x) and body
-    base_query = {
-        "multi_match": {
-            "query": query_text,
-            "fields": ["title^3", "body"],
-            "type": "best_fields",
+    # Phrase detection: startswith+endswith " and len > 2 (Pitfall 3 guard)
+    _is_phrase = (
+        query_text.startswith('"')
+        and query_text.endswith('"')
+        and len(query_text) > 2
+    )
+
+    if _is_phrase:
+        # Phrase path: strip quotes; NO fuzziness (ES returns 400 if fuzziness
+        # is present with type:phrase — Pitfall 1 in RESEARCH.md)
+        _phrase_text = query_text[1:-1].strip()
+        base_query = {
+            "multi_match": {
+                "query": _phrase_text,
+                "fields": ["title^3", "body"],
+                "type": "phrase",
+            }
         }
-    }
+    else:
+        # Default path: fuzzy best_fields (QURY-01)
+        base_query = {
+            "multi_match": {
+                "query": query_text,
+                "fields": ["title^3", "body"],
+                "type": "best_fields",
+                "fuzziness": "AUTO",
+                "prefix_length": 1,
+            }
+        }
 
     return {
         "function_score": {
@@ -166,11 +187,31 @@ def build_filter_clauses(
     return filters
 
 
+def _build_sort_clauses(sort: str | None) -> list[dict] | None:
+    """Return ES sort array for the given sort mode, or None for relevance.
+
+    None signals the caller to omit the sort kwarg entirely, which lets ES
+    default to _score desc (relevance ranking).
+
+    Args:
+        sort: "date" | "size" | "relevance" | None
+
+    Returns:
+        list with one sort dict for "date" or "size"; None for anything else.
+    """
+    if sort == "date":
+        return [{"published_at": {"order": "desc"}}]
+    if sort == "size":
+        return [{"word_count": {"order": "desc"}}]
+    return None  # "relevance" or unknown → ES default _score desc
+
+
 def build_search_body(
     query_text: str,
     filters: list[dict] | None = None,
     size: int = 20,
     from_: int = 0,
+    sort: str | None = None,
     recency_weight: float = DEFAULT_RECENCY_WEIGHT,
     length_weight: float = DEFAULT_LENGTH_WEIGHT,
     infobox_weight: float = DEFAULT_INFOBOX_WEIGHT,
@@ -190,6 +231,8 @@ def build_search_body(
         filters:                 List of term filter dicts from build_filter_clauses, or None/[].
         size:                    Number of results to return. Clamped to MAX_RESULT_SIZE (100).
         from_:                   Offset for pagination (0-based).
+        sort:                    Sort mode: "date" | "size" | "relevance" | None.
+                                 "relevance" and None omit the sort key (ES default _score desc).
         recency_weight:          Weight for Gaussian decay function (forwarded to function_score).
         length_weight:           Weight for field_value_factor length signal.
         infobox_weight:          Weight for infobox boolean boost.
@@ -197,7 +240,7 @@ def build_search_body(
 
     Returns:
         dict ready to be passed to client.search() as keyword arguments.
-        Keys: "query", "highlight", "size", "from", "_source".
+        Keys: "query", "highlight", "size", "from", "_source" (+ "sort" when applicable).
     """
     fs_query = build_function_score_query(
         query_text,
@@ -218,7 +261,7 @@ def build_search_body(
             }
         }
 
-    return {
+    result = {
         "query": fs_query,
         "highlight": {
             "fields": {
@@ -244,3 +287,7 @@ def build_search_body(
             "manufacturer", "era_bucket", "body_style",
         ],
     }
+    sort_clauses = _build_sort_clauses(sort)
+    if sort_clauses is not None:
+        result["sort"] = sort_clauses
+    return result

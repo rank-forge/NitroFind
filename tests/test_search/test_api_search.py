@@ -259,3 +259,54 @@ def test_search_empty_q_returns_empty(monkeypatch):
 
     # ES was never called for either request
     mock_es.search.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# SORT-02: sort param forwarding and allowlist
+# ---------------------------------------------------------------------------
+
+
+def test_sort_date_passed_to_es(monkeypatch):
+    """GET /api/search?q=mustang&sort=date passes date sort array to es_client.search. [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=mustang&sort=date")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["sort"] == [{"published_at": {"order": "desc"}}]
+
+
+def test_sort_size_passed_to_es(monkeypatch):
+    """GET /api/search?q=mustang&sort=size passes size sort array to es_client.search. [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=mustang&sort=size")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["sort"] == [{"word_count": {"order": "desc"}}]
+
+
+def test_sort_unknown_value_ignored(monkeypatch):
+    """GET /api/search?q=test&sort=inject treats unknown sort as relevance (sort=None). [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&sort=inject")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    # sort kwarg should be None (no sort array) when value is not in allowlist
+    assert call_kwargs.get("sort") is None
