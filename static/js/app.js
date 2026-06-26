@@ -236,8 +236,10 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     searchInput.value = "";
     searchInputResults.value = "";
-    transitionTo("home");
+    currentQuery = "";        // prevent stale re-search on filter/sort change from home state
+    currentResults = [];      // prevent stale keyboard nav after returning to home
     selectedIndex = -1;
+    transitionTo("home");
   }
 });
 
