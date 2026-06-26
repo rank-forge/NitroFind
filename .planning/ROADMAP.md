@@ -34,7 +34,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 
 ### v1.2 Search Quality & UX Polish (Phases 9–13)
 
-- [ ] **Phase 9: Article Rendering Fixes** - Fix table stripping and body text bloat in the detail pane
+- [x] **Phase 9: Article Rendering Fixes** - Fix table stripping and body text bloat in the detail pane (completed 2026-06-25)
 - [ ] **Phase 10: Search Quality & Sort** - Add fuzzy/phrase search routing and sort controls
 - [ ] **Phase 11: Extended Filtering** - Year range and country filters in API and UI
 - [ ] **Phase 12: Pagination** - Result pages with Previous / Next navigation and total hit count
@@ -65,7 +65,9 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   2. Searching `"V8 engine"` (with quotes) returns articles that contain the exact phrase, ranked above articles with the words scattered
   3. Clicking "By date" reorders visible results newest-first; clicking "By size" reorders largest-first; clicking "By relevance" restores default scoring order
   4. The `GET /api/search?sort=date` and `sort=size` params produce correctly ordered ES results independent of the UI
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 10-01-PLAN.md — Backend query routing: fuzzy (QURY-01), phrase routing (QURY-02), sort param (SORT-02)
+  - [ ] 10-02-PLAN.md — Frontend sort UI: toggle buttons wired to sort= param (SORT-01)
 **UI hint**: yes
 
 ### Phase 11: Extended Filtering
@@ -115,8 +117,8 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 6. Server Lifecycle & Cleanup | v1.1 | 3/3 | Complete | 2026-06-03 |
 | 7. Search REST API | v1.1 | 1/1 | Complete | 2026-06-03 |
 | 8. Browser Search UI | v1.1 | 3/3 | Complete | 2026-06-04 |
-| 9. Article Rendering Fixes | v1.2 | 0/4 | Planned | - |
-| 10. Search Quality & Sort | v1.2 | 0/? | Not started | - |
+| 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
+| 10. Search Quality & Sort | v1.2 | 0/2 | Planned | - |
 | 11. Extended Filtering | v1.2 | 0/? | Not started | - |
 | 12. Pagination | v1.2 | 0/? | Not started | - |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
