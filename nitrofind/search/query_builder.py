@@ -200,7 +200,7 @@ def _build_sort_clauses(sort: str | None) -> list[dict] | None:
         list with one sort dict for "date" or "size"; None for anything else.
     """
     if sort == "date":
-        return [{"published_at": {"order": "desc"}}]
+        return [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
     if sort == "size":
         return [{"word_count": {"order": "desc"}}]
     return None  # "relevance" or unknown → ES default _score desc
