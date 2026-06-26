@@ -249,6 +249,7 @@ document.addEventListener("keydown", (e) => {
 
 function startWarmupPolling() {
   searchInput.disabled = true;
+  searchInputResults.disabled = true;   // disable results-view input during warmup
   statusLine.textContent = "Starting up…";
   statusLine.style.opacity = "1";
 
@@ -260,6 +261,7 @@ function startWarmupPolling() {
         if (data.status === "ok") {
           clearInterval(pollId);
           searchInput.disabled = false;
+          searchInputResults.disabled = false;  // re-enable results-view input on ready
           statusLine.style.opacity = "0";  // CSS transition fades it out
           searchInput.focus();
         }
