@@ -42,9 +42,9 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 - [ ] Article rendering: Wikipedia/blog tables not displayed in detail view — v1.2
 - [ ] Article rendering: Body text too large (link text being ingested with article body) — v1.2
-- [ ] Fuzzy search — fuzziness: "AUTO" on multi_match — v1.2
-- [ ] Phrase search — detect quoted queries → route to match_phrase — v1.2
-- [ ] Alternative sort buttons: "By date", "By relevance", "By size" — v1.2
+- ✓ Fuzzy search — fuzziness: "AUTO" on multi_match — v1.2 (Validated in Phase 10: search-quality-sort)
+- ✓ Phrase search — detect quoted queries → route to match_phrase — v1.2 (Validated in Phase 10: search-quality-sort)
+- ✓ Alternative sort buttons: "By date", "By relevance", "By size" — v1.2 (Validated in Phase 10: search-quality-sort)
 - [ ] Year range filter (production_start / production_end) — v1.2
 - [ ] Country of origin filter — v1.2
 - [ ] Pagination (previous / next result pages) — v1.2
@@ -137,4 +137,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-17 — v1.2 milestone started*
+*Last updated: 2026-06-26 — Phase 10 complete: fuzzy/phrase search + sort controls shipped*
