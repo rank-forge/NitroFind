@@ -468,17 +468,17 @@ filters = build_filter_clauses(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Country normalization UX**
    - What we know: `country_of_origin` stores raw Wikipedia infobox strings. Values are inconsistent ("Germany", "West Germany", "British", "United Kingdom").
    - What's unclear: Should the UI hint at available countries (datalist), or accept any input and silently return zero?
-   - Recommendation: Keep as free-text `<input>` with placeholder for this phase; a `<datalist>` populated from live ES aggregations is a v1.3 improvement. Out of scope for FILT-02.
+   - RESOLVED: Keep as free-text `<input>` with placeholder `e.g. Germany` for this phase; a `<datalist>` populated from live ES aggregations is a v1.3 improvement. Out of scope for FILT-02.
 
 2. **Year bounds for number inputs**
    - What we know: Scraper validates `production_start` in range 1900–2099. ES schema has no constraint.
    - What's unclear: Should the UI enforce `min="1900"` on inputs to prevent users typing 4-digit years outside this range?
-   - Recommendation: Use `min="1900" max="2099"` on both number inputs as soft client-side validation. Server coerces to `int` regardless.
+   - RESOLVED: Use `min="1900" max="2099"` on both number inputs as soft client-side validation. Server coerces to `int` regardless — these attributes enforce expected bounds without blocking legitimate values.
 
 ---
 
