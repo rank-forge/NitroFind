@@ -79,7 +79,10 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   2. Entering "Germany" in the Country filter returns only articles tagged with German origin
   3. Year range and country filters combine correctly with the existing manufacturer, era_bucket, and body style filters — all active filters apply simultaneously
   4. The `GET /api/search?year_from=&year_to=&country=` params are accepted and mapped to ES filter clauses
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 11-01-PLAN.md — Failing-test scaffold (Wave 0: RED tests for year/country filter clauses + API forwarding)
+  - [ ] 11-02-PLAN.md — Backend: extend build_filter_clauses (FILT-01/02) + api_search param coercion (FILT-03)
+  - [ ] 11-03-PLAN.md — Frontend filter-row controls (year/country inputs) + human UI verification (checkpoint)
 **UI hint**: yes
 
 ### Phase 12: Pagination
@@ -119,6 +122,6 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 8. Browser Search UI | v1.1 | 3/3 | Complete | 2026-06-04 |
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
-| 11. Extended Filtering | v1.2 | 0/? | Not started | - |
+| 11. Extended Filtering | v1.2 | 0/3 | Not started | - |
 | 12. Pagination | v1.2 | 0/? | Not started | - |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
