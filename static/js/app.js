@@ -25,7 +25,14 @@
 let uiState = "home";        // "home" | "results" | "article"
 let selectedIndex = -1;      // keyboard nav cursor
 let currentQuery = "";
-let currentFilters = { manufacturer: "", era_bucket: "", body_style: "" };
+let currentFilters = {
+  manufacturer: "",
+  era_bucket:   "",
+  body_style:   "",
+  year_from:    "",   // FILT-01
+  year_to:      "",   // FILT-01
+  country:      "",   // FILT-02
+};
 let currentSort = "relevance";   // "relevance" | "date" | "size"
 let currentResults = [];
 let debounceTimer = null;
@@ -45,6 +52,9 @@ const statsLine       = document.getElementById("stats-line");
 const filterMfr       = document.getElementById("filter-manufacturer");
 const filterEra       = document.getElementById("filter-era");
 const filterBody      = document.getElementById("filter-body");
+const filterYearFrom  = document.getElementById("filter-year-from");
+const filterYearTo    = document.getElementById("filter-year-to");
+const filterCountry   = document.getElementById("filter-country");
 const backBtn         = document.getElementById("back-btn");
 const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
@@ -193,12 +203,18 @@ function onFilterChange() {
   currentFilters.manufacturer = filterMfr.value;
   currentFilters.era_bucket   = filterEra.value;
   currentFilters.body_style   = filterBody.value;
+  currentFilters.year_from    = filterYearFrom.value;   // FILT-01
+  currentFilters.year_to      = filterYearTo.value;     // FILT-01
+  currentFilters.country      = filterCountry.value;    // FILT-02
   if (currentQuery) runSearch(currentQuery);
 }
 
 filterMfr.addEventListener("change", onFilterChange);
 filterEra.addEventListener("change", onFilterChange);
 filterBody.addEventListener("change", onFilterChange);
+filterYearFrom.addEventListener("change", onFilterChange);   // FILT-01: change not input (Pitfall 4)
+filterYearTo.addEventListener("change", onFilterChange);     // FILT-01: change not input (Pitfall 4)
+filterCountry.addEventListener("change", onFilterChange);    // FILT-02
 
 function onSortChange(newSort) {
   currentSort = newSort;
