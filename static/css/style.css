@@ -190,6 +190,28 @@ body[data-state="article"] .article-view { display: block; }
   border-color: var(--accent);
 }
 
+.filter-row input[type="number"],
+.filter-row input[type="text"] {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.85rem;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color var(--transition);
+  width: 7rem;
+}
+
+.filter-row input[type="text"] {
+  width: 9rem;
+}
+
+.filter-row input[type="number"]:focus,
+.filter-row input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
 /* Sort controls */
 .sort-controls {
   display: flex;
