@@ -159,6 +159,9 @@ def build_filter_clauses(
     manufacturer: str | None = None,
     era_bucket: str | None = None,
     body_style: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+    country: str | None = None,
 ) -> list[dict]:
     """Return a list of term filter dicts for the bool.filter context.
 
@@ -173,9 +176,12 @@ def build_filter_clauses(
         manufacturer: Exact manufacturer keyword to filter on, or None to skip.
         era_bucket:   Exact era_bucket keyword (e.g. "1960s"), or None to skip.
         body_style:   Exact body_style keyword (e.g. "coupe"), or None to skip.
+        year_from:    Lower bound of production year range (inclusive), or None to skip.
+        year_to:      Upper bound of production year range (inclusive), or None to skip.
+        country:      Exact country_of_origin keyword (e.g. "Germany"), or None to skip.
 
     Returns:
-        List of ES term filter dicts. Empty list when all args are None.
+        List of ES term/range filter dicts. Empty list when all args are None/falsy.
     """
     filters = []
     if manufacturer:
@@ -184,6 +190,16 @@ def build_filter_clauses(
         filters.append({"term": {"era_bucket": era_bucket}})
     if body_style:
         filters.append({"term": {"body_style": body_style}})
+    # FILT-01: interval overlap — article production period intersects [year_from, year_to]
+    # Two clauses required: production_end >= year_from AND production_start <= year_to
+    # Use `is not None` (not truthiness) so that integer 0 is a valid year.
+    if year_from is not None:
+        filters.append({"range": {"production_end": {"gte": year_from}}})
+    if year_to is not None:
+        filters.append({"range": {"production_start": {"lte": year_to}}})
+    # FILT-02: exact country of origin match (keyword field — case-sensitive)
+    if country:
+        filters.append({"term": {"country_of_origin": country}})
     return filters
 
 
