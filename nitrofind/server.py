@@ -124,6 +124,26 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
     }
 
 
+def _safe_int_param(raw: str | None) -> int | None:
+    """Coerce string query param to int, returning None on error.
+
+    Tampering mitigation T-11-02: raw user strings never reach an ES range
+    clause — only validated int values pass through.
+
+    Args:
+        raw: Raw query param string (e.g. "1960"), or None if param absent.
+
+    Returns:
+        int on success; None if raw is falsy or not a valid integer.
+    """
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
 @app.route("/api/search")
 def api_search():
     """GET /api/search — ranked full-text search with optional filters.
@@ -152,6 +172,9 @@ def api_search():
         manufacturer=request.args.get("manufacturer") or None,
         era_bucket=request.args.get("era_bucket") or None,
         body_style=request.args.get("body_style") or None,
+        year_from=_safe_int_param(request.args.get("year_from")),
+        year_to=_safe_int_param(request.args.get("year_to")),
+        country=request.args.get("country") or None,
     )
     # SORT-02: read sort param with allowlist (T-10-SORT mitigation)
     sort = request.args.get("sort") or None
