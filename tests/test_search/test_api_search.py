@@ -310,3 +310,78 @@ def test_sort_unknown_value_ignored(monkeypatch):
     call_kwargs = mock_es.search.call_args.kwargs
     # sort kwarg should be None (no sort array) when value is not in allowlist
     assert call_kwargs.get("sort") is None
+
+
+# ---------------------------------------------------------------------------
+# FILT-03: year/country API param forwarding
+# ---------------------------------------------------------------------------
+
+
+def test_year_from_filter_forwarded(monkeypatch):
+    """GET /api/search?year_from=1960 forwards production_end range clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_from=1960")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"range": {"production_end": {"gte": 1960}}} in filters
+
+
+def test_year_to_filter_forwarded(monkeypatch):
+    """GET /api/search?year_to=1975 forwards production_start range clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_to=1975")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"range": {"production_start": {"lte": 1975}}} in filters
+
+
+def test_country_filter_forwarded(monkeypatch):
+    """GET /api/search?country=Germany forwards country_of_origin term clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&country=Germany")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"term": {"country_of_origin": "Germany"}} in filters
+
+
+def test_year_invalid_string_coerced_to_none(monkeypatch):
+    """Non-integer year_from (e.g. 'abc') is coerced to None — no range clause emitted. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_from=abc")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    query = call_kwargs["query"]
+    # No bool.filter wrapping — inner query is plain multi_match with no production_end clause
+    fs_inner = query["function_score"]["query"]
+    assert "production_end" not in str(fs_inner)
