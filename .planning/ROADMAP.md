@@ -36,7 +36,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 
 - [x] **Phase 9: Article Rendering Fixes** - Fix table stripping and body text bloat in the detail pane (completed 2026-06-25)
 - [x] **Phase 10: Search Quality & Sort** - Add fuzzy/phrase search routing and sort controls (completed 2026-06-26)
-- [ ] **Phase 11: Extended Filtering** - Year range and country filters in API and UI
+- [x] **Phase 11: Extended Filtering** - Year range and country filters in API and UI (completed 2026-07-03)
 - [ ] **Phase 12: Pagination** - Result pages with Previous / Next navigation and total hit count
 - [ ] **Phase 13: History & Theme** - Search history (localStorage) and dark/light theme toggle
 
@@ -82,7 +82,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 **Plans**: 3 plans
   - [x] 11-01-PLAN.md — Failing-test scaffold (Wave 0: RED tests for year/country filter clauses + API forwarding)
   - [x] 11-02-PLAN.md — Backend: extend build_filter_clauses (FILT-01/02) + api_search param coercion (FILT-03)
-  - [ ] 11-03-PLAN.md — Frontend filter-row controls (year/country inputs) + human UI verification (checkpoint)
+  - [x] 11-03-PLAN.md — Frontend filter-row controls (year/country inputs) + human UI verification (checkpoint)
 **UI hint**: yes
 
 ### Phase 12: Pagination
@@ -122,6 +122,6 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 8. Browser Search UI | v1.1 | 3/3 | Complete | 2026-06-04 |
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
-| 11. Extended Filtering | v1.2 | 2/3 | In Progress|  |
+| 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
 | 12. Pagination | v1.2 | 0/? | Not started | - |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
