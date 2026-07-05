@@ -47,7 +47,7 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 - ✓ Alternative sort buttons: "By date", "By relevance", "By size" — v1.2 (Validated in Phase 10: search-quality-sort)
 - [ ] Year range filter (production_start / production_end) — v1.2
 - [ ] Country of origin filter — v1.2
-- [ ] Pagination (previous / next result pages) — v1.2
+- ✓ Pagination (previous / next result pages, 10 per page, total hit count) — v1.2 (Validated in Phase 12: pagination)
 - [ ] Search history (last 10 queries, localStorage) — v1.2
 - [ ] Dark / light mode toggle in header — v1.2
 
@@ -137,4 +137,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-26 — Phase 10 complete: fuzzy/phrase search + sort controls shipped*
+*Last updated: 2026-07-05 — Phase 12 complete: pagination shipped (prev/next, 10 per page, total hit count)*
