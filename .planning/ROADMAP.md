@@ -151,5 +151,5 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
-| 12. Pagination | v1.2 | 3/3 | Complete   | 2026-07-05 |
+| 12. Pagination | v1.2 | 3/3 | Complete    | 2026-07-05 |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |

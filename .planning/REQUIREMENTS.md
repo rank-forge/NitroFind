@@ -29,8 +29,8 @@
 
 ### Pagination (PAGE)
 
-- [ ] **PAGE-01**: Result list shows results in pages (default 10 per page) with Previous / Next navigation buttons
-- [ ] **PAGE-02**: Result count below the search box shows total hits across all pages (e.g. "248 results (0.08s)")
+- [x] **PAGE-01**: Result list shows results in pages (default 10 per page) with Previous / Next navigation buttons
+- [x] **PAGE-02**: Result count below the search box shows total hits across all pages (e.g. "248 results (0.08s)")
 
 ### Search History (HIST)
 
