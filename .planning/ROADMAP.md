@@ -113,7 +113,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 **Wave 1**
 
   - [x] 12-01-PLAN.md — Wave 0 failing-test scaffold (update 4 response-shape tests + 6 new pagination tests, RED)
-  - [ ] 12-02-PLAN.md — Backend: PAGE_SIZE + page param + wrapper response {results,total,took_ms,page} (PAGE-01/02)
+  - [x] 12-02-PLAN.md — Backend: PAGE_SIZE + page param + wrapper response {results,total,took_ms,page} (PAGE-01/02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -151,5 +151,5 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
-| 12. Pagination | v1.2 | 1/3 | In Progress|  |
+| 12. Pagination | v1.2 | 2/3 | In Progress|  |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
