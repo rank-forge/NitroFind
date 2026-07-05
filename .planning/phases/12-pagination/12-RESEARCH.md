@@ -629,7 +629,7 @@ function renderResults(results) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Keyboard navigation with pagination:** The existing ArrowDown/ArrowUp nav operates on `currentResults` indices 0-9. After Phase 12, this continues to work correctly — `currentResults` holds only the current page's items. No change needed. Not a gap, just a confirmation.
 
