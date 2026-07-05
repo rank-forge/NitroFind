@@ -93,7 +93,10 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   1. A search returning more than 10 results shows only 10 at a time with Previous and Next buttons below the result list
   2. Clicking Next loads the next 10 results; clicking Previous returns to the prior page without re-executing the full query from scratch
   3. The result count line reads "248 results (0.08s)" — total hits across all pages, not just the current page
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 12-01-PLAN.md — Wave 0 failing-test scaffold (update 4 response-shape tests + 6 new pagination tests, RED)
+  - [ ] 12-02-PLAN.md — Backend: PAGE_SIZE + page param + wrapper response {results,total,took_ms,page} (PAGE-01/02)
+  - [ ] 12-03-PLAN.md — Frontend pagination row + currentPage state + total-hit stats line + human UI verification (checkpoint)
 **UI hint**: yes
 
 ### Phase 13: History & Theme
@@ -123,5 +126,5 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 9. Article Rendering Fixes | v1.2 | 4/4 | Complete | 2026-06-25 |
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
-| 12. Pagination | v1.2 | 0/? | Not started | - |
+| 12. Pagination | v1.2 | 0/3 | Planned | - |
 | 13. History & Theme | v1.2 | 0/? | Not started | - |
