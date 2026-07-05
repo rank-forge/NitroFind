@@ -387,3 +387,146 @@ def test_year_invalid_string_coerced_to_none(monkeypatch):
     # No bool.filter wrapping — inner query is plain multi_match with no production_end clause
     fs_inner = query["function_score"]["query"]
     assert "production_end" not in str(fs_inner)
+
+
+# ---------------------------------------------------------------------------
+# PAGE-01 / PAGE-02: Pagination unit tests (RED — implementation in 12-02)
+# ---------------------------------------------------------------------------
+
+
+def test_pagination_default(monkeypatch):
+    """GET /api/search?q=ferrari (no page param) → ES receives from_=0 and size=10. [PAGE-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["from_"] == 0
+    assert call_kwargs["size"] == 10
+
+
+def test_pagination_page_2(monkeypatch):
+    """GET /api/search?q=ferrari&page=2 → ES receives from_=10 and size=10. [PAGE-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=2")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["from_"] == 10   # (2-1) * 10
+    assert call_kwargs["size"] == 10
+
+
+def test_pagination_page_zero(monkeypatch):
+    """GET /api/search?q=ferrari&page=0 → clamped to page 1 → ES receives from_=0; response page==1. [PAGE-01, T-12-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=0")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    # page=0 must be clamped to 1 — from_ must never be negative
+    assert call_kwargs["from_"] == 0
+    # clamped page must be reflected in wrapper response
+    data = resp.get_json()
+    assert data["page"] == 1
+
+
+def test_pagination_invalid_page(monkeypatch):
+    """GET /api/search?q=ferrari&page=abc → non-integer coerced to page 1 → from_=0; response page==1. [PAGE-01, T-12-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=abc")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    # Non-integer page must default to page 1 — from_ must be 0
+    assert call_kwargs["from_"] == 0
+    # defaulted page must be reflected in wrapper response
+    data = resp.get_json()
+    assert data["page"] == 1
+
+
+def test_pagination_total(monkeypatch):
+    """Response includes 'total' key equal to hits.total.value from ES. [PAGE-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 248}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["total"] == 248
+
+
+def test_pagination_wrapper(monkeypatch):
+    """Response is a dict with keys results/total/took_ms/page; took_ms is at wrapper level, not per-item. [PAGE-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    # Response must be a dict (not a list)
+    assert isinstance(data, dict)
+    # Must contain all four wrapper keys
+    assert "results" in data
+    assert "total" in data
+    assert "took_ms" in data
+    assert "page" in data
+    # took_ms at wrapper level comes from ES "took"
+    assert data["took_ms"] == 3
+    # No per-item took_ms — took_ms must NOT appear inside any result item
+    for item in data["results"]:
+        assert "took_ms" not in item
