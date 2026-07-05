@@ -95,7 +95,7 @@ def api_status():
     }, 200
 
 
-def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
+def _result_to_api_dict(result: ArticleResult) -> dict:
     """Serialize one ArticleResult to the API-01 wire format.
 
     Excerpt selection: use highlight_body[0] if ES returned a highlighted
@@ -103,13 +103,14 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
     This satisfies API-01's requirement that the excerpt contain ES highlight
     tags when a match exists.
 
+    Note: took_ms is no longer per-item — it now lives on the wrapper response
+    (PAGE-02). The wrapper response has keys: results, total, took_ms, page.
+
     Args:
         result:   ArticleResult instance from ArticleResult.from_es_hit().
-        took_ms:  ES response-level took value (ms). Same value for all items
-                  in a single response (Pitfall 5 resolution).
 
     Returns:
-        dict with keys: title, url, source_domain, excerpt, score, took_ms.
+        dict with keys: title, url, source_domain, excerpt, body, body_html, score.
     """
     excerpt = result.highlight_body[0] if result.highlight_body else result.excerpt
     return {
@@ -120,7 +121,6 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
         "body": result.body,
         "body_html": result.body_html,   # Phase 9: HTML for article view rendering
         "score": result.score,
-        "took_ms": took_ms,
     }
 
 
