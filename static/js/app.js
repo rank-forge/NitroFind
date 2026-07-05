@@ -34,6 +34,7 @@ let currentFilters = {
   country:      "",   // FILT-02
 };
 let currentSort = "relevance";   // "relevance" | "date" | "size"
+let currentPage = 1;
 let currentResults = [];
 let debounceTimer = null;
 let abortController = null;
@@ -56,6 +57,8 @@ const filterYearFrom  = document.getElementById("filter-year-from");
 const filterYearTo    = document.getElementById("filter-year-to");
 const filterCountry   = document.getElementById("filter-country");
 const backBtn         = document.getElementById("back-btn");
+const prevBtn         = document.getElementById("prev-btn");
+const nextBtn         = document.getElementById("next-btn");
 const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
@@ -81,7 +84,10 @@ function handleSearchInput(input) {
     transitionTo("home");
     return;
   }
-  debounceTimer = setTimeout(() => runSearch(q), DEBOUNCE_MS);
+  debounceTimer = setTimeout(() => {
+    currentPage = 1;
+    runSearch(q);
+  }, DEBOUNCE_MS);
 }
 
 searchInput.addEventListener("input", () => handleSearchInput(searchInput));
@@ -98,7 +104,7 @@ async function runSearch(q) {
   if (abortController) abortController.abort();
   abortController = new AbortController();
 
-  const params = new URLSearchParams({ q, ...currentFilters });
+  const params = new URLSearchParams({ q, ...currentFilters, page: currentPage });
   // Strip empty filter values — prevents sending manufacturer= (Pitfall 5)
   for (const [k, v] of [...params.entries()]) {
     if (!v) params.delete(k);
@@ -113,11 +119,13 @@ async function runSearch(q) {
       signal: abortController.signal,
     });
     if (!resp.ok) return;
-    const results = await resp.json();
-    if (!Array.isArray(results)) return;
-    currentResults = results;
+    const data = await resp.json();
+    if (!data || !Array.isArray(data.results)) return;
+    currentResults = data.results;
     selectedIndex = -1;   // reset keyboard cursor on new results
-    renderResults(results);
+    renderResults(data.results);
+    renderResultCount(data.total, data.took_ms);
+    renderPagination(data.total, data.page);
     transitionTo("results");
   } catch (err) {
     if (err.name !== "AbortError") console.error("Search failed:", err);
@@ -128,18 +136,15 @@ async function runSearch(q) {
 // Result rendering (SRCH-02, UIPL-02)
 // ---------------------------------------------------------------------------
 
-function renderResultCount(results) {
-  if (results.length === 0) {
+function renderResultCount(total, tookMs) {
+  if (total === 0) {
     statsLine.textContent = "No results";
   } else {
-    const took = results[0].took_ms;
-    statsLine.textContent = `${results.length} results (${(took / 1000).toFixed(2)}s)`;
+    statsLine.textContent = `${total} results (${(tookMs / 1000).toFixed(2)}s)`;
   }
 }
 
 function renderResults(results) {
-  renderResultCount(results);
-
   resultsList.innerHTML = "";
   results.forEach((r, i) => {
     const item = document.createElement("div");
@@ -169,6 +174,12 @@ function renderResults(results) {
   });
 }
 
+function renderPagination(total, page) {
+  const pageSize = 10;  // must match PAGE_SIZE in server.py
+  prevBtn.disabled = page <= 1;
+  nextBtn.disabled = page * pageSize >= total;
+}
+
 // ---------------------------------------------------------------------------
 // Article view (SRCH-03, D-05)
 // ---------------------------------------------------------------------------
@@ -195,6 +206,18 @@ backBtn.addEventListener("click", () => {
   // Query and filter state are preserved in module-level vars (D-05)
 });
 
+prevBtn.addEventListener("click", () => {
+  if (currentPage > 1) {
+    currentPage -= 1;
+    runSearch(currentQuery);
+  }
+});
+
+nextBtn.addEventListener("click", () => {
+  currentPage += 1;
+  runSearch(currentQuery);
+});
+
 // ---------------------------------------------------------------------------
 // Filter handlers (SRCH-04, D-06)
 // ---------------------------------------------------------------------------
@@ -206,6 +229,7 @@ function onFilterChange() {
   currentFilters.year_from    = filterYearFrom.value;   // FILT-01
   currentFilters.year_to      = filterYearTo.value;     // FILT-01
   currentFilters.country      = filterCountry.value;    // FILT-02
+  currentPage = 1;
   if (currentQuery) runSearch(currentQuery);
 }
 
@@ -218,6 +242,7 @@ filterCountry.addEventListener("change", onFilterChange);    // FILT-02
 
 function onSortChange(newSort) {
   currentSort = newSort;
+  currentPage = 1;
   sortBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.sort === newSort));
   if (currentQuery) runSearch(currentQuery);
 }
