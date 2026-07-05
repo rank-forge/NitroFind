@@ -101,25 +101,27 @@ def client_not_ready(monkeypatch):
 
 
 def test_search_returns_result_array(client_with_search):
-    """GET /api/search?q=mustang returns 200 with a JSON array of length 1. [API-01]"""
+    """GET /api/search?q=mustang returns 200 with a JSON wrapper containing a 'results' list of length 1. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
     data = resp.get_json()
-    assert isinstance(data, list)
-    assert len(data) == 1
+    assert isinstance(data["results"], list)
+    assert len(data["results"]) == 1
 
 
 def test_search_result_shape(client_with_search):
-    """Each result item has exactly the six expected keys; title and took_ms are correct. [API-01]"""
+    """Each result item has exactly the seven expected keys (no took_ms per-item); took_ms/total/page are at wrapper level. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
     data = resp.get_json()
-    item = data[0]
+    item = data["results"][0]
     assert set(item.keys()) == {
-        "title", "url", "source_domain", "excerpt", "body", "body_html", "score", "took_ms"
+        "title", "url", "source_domain", "excerpt", "body", "body_html", "score"
     }
     assert item["title"] == "Ford Mustang"
-    assert item["took_ms"] == 12  # from mock took=12
+    assert data["took_ms"] == 12  # from mock took=12, at wrapper level
+    assert data["total"] == 1
+    assert data["page"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +133,7 @@ def test_excerpt_uses_highlight(client_with_search):
     """When ES returns a body highlight, excerpt contains the <b>-tagged fragment. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
-    item = resp.get_json()[0]
+    item = resp.get_json()["results"][0]
     assert "<b>" in item["excerpt"]
     assert item["excerpt"] == "The <b>Mustang</b> is a pony car."
 
@@ -140,7 +142,7 @@ def test_excerpt_fallback(client_no_highlight):
     """When ES returns no highlight, excerpt falls back to plain _source excerpt. [API-01]"""
     resp = client_no_highlight.get("/api/search?q=mustang")
     assert resp.status_code == 200
-    item = resp.get_json()[0]
+    item = resp.get_json()["results"][0]
     assert "<b>" not in item["excerpt"]
     assert item["excerpt"] == "The Ford Mustang is a pony car."
 
