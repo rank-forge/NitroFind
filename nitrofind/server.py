@@ -8,13 +8,13 @@ Exports:
   start_es_background — Spawn daemon thread that starts ES subprocess and polls cluster health
   index               — GET / route: serves rendered index.html search UI
   api_status          — GET /api/status route: 503 warmup guard / 200 health JSON
-  api_search          — GET /api/search route: ranked full-text search with optional filters
-  _result_to_api_dict — Serialize ArticleResult to the API-01 wire format
+  api_search          — GET /api/search route: ranked full-text search with optional filters and pagination
+  _result_to_api_dict — Serialize ArticleResult to the per-item wire format (7 keys, no took_ms)
 
 Requirement coverage:
   SRVR-02: Flask listens on localhost:5000; PORT overridable via env var
   SRVR-03: HTTP 503 {"status": "starting"} during ES warmup
-  API-01:  GET /api/search returns JSON array with title, url, source_domain, excerpt, score, took_ms
+  API-01:  GET /api/search returns JSON wrapper {results, total, took_ms, page} with per-item keys title, url, source_domain, excerpt, body, body_html, score
   API-02:  GET /api/search accepts manufacturer, era_bucket, body_style filter params
   API-03:  GET /api/status returns JSON with es_health, doc_count, index_size_bytes
   API-04:  GET / serves rendered index.html search UI
@@ -48,6 +48,8 @@ _pkg_dir = os.path.dirname(os.path.abspath(__file__))
 
 # SORT-02: allowlist for sort param (T-10-SORT mitigation — unknown values coerced to None)
 _VALID_SORTS: frozenset[str] = frozenset({"relevance", "date", "size"})
+# PAGE-01: number of results per page (matches frontend pageSize constant)
+PAGE_SIZE: int = 10
 app = Flask(
     __name__,
     template_folder=os.path.join(_pkg_dir, "..", "templates"),
@@ -146,12 +148,15 @@ def _safe_int_param(raw: str | None) -> int | None:
 
 @app.route("/api/search")
 def api_search():
-    """GET /api/search — ranked full-text search with optional filters.
+    """GET /api/search — ranked full-text search with optional filters and pagination.
 
     Requirement coverage:
-      API-01: returns JSON array with title, url, source_domain, excerpt, score, took_ms
+      API-01: returns JSON wrapper {results, total, took_ms, page} with per-item keys
+              title, url, source_domain, excerpt, body, body_html, score
       API-02: accepts manufacturer, era_bucket, body_style filter params
       SRVR-03: returns 503 while state["ready"] is False
+      PAGE-01: page param maps to from_ offset (from_ = (page-1) * PAGE_SIZE)
+      PAGE-02: total key exposes hits.total.value for pagination UI
 
     Security mitigations:
       T-07-01: q placed in multi_match.query value only — never interpolated as DSL key
@@ -160,6 +165,8 @@ def api_search():
       T-07-04: size clamped to MAX_RESULT_SIZE by build_search_body()
       T-07-05: blank q guard returns [] before any ES call (prevents multi_match BadRequestError)
       T-07-07: 503 guard runs before any state["es_client"] access
+      T-12-01: page param coerced via _safe_int_param — raw string never reaches ES
+      T-12-02: page=0 clamped to 1 via max(1, ...); very large page yields ES 400 caught by try/except
     """
     if not state["ready"]:
         return {"status": "starting"}, 503
@@ -180,7 +187,12 @@ def api_search():
     sort = request.args.get("sort") or None
     if sort not in _VALID_SORTS:
         sort = None  # unknown value → treat as relevance (silently coerced)
-    body = build_search_body(q, filters=filters, sort=sort)
+
+    # PAGE-01: read page param; non-integer or zero → clamp to 1 (T-12-01, T-12-02)
+    page = max(1, _safe_int_param(request.args.get("page")) or 1)
+    from_value = (page - 1) * PAGE_SIZE
+
+    body = build_search_body(q, filters=filters, sort=sort, size=PAGE_SIZE, from_=from_value)
 
     try:
         resp = state["es_client"].search(
@@ -189,7 +201,7 @@ def api_search():
             sort=body.get("sort"),        # SORT-02: None → ES default _score desc; list → field sort
             highlight=body.get("highlight"),
             source=body.get("_source"),   # 'source' not '_source' — known naming difference (Pitfall 1)
-            size=body.get("size", 20),
+            size=body.get("size", PAGE_SIZE),
             from_=body.get("from", 0),
         )
     except Exception as exc:
@@ -197,8 +209,14 @@ def api_search():
         return {"error": "search_failed"}, 500
 
     took_ms = resp.get("took", 0)
+    total = resp["hits"]["total"]["value"]  # PAGE-02: true hit count across all pages
     results = [ArticleResult.from_es_hit(hit) for hit in resp["hits"]["hits"]]
-    return jsonify([_result_to_api_dict(r, took_ms) for r in results])
+    return jsonify({
+        "results": [_result_to_api_dict(r) for r in results],
+        "total": total,
+        "took_ms": took_ms,
+        "page": page,
+    })
 
 
 # ---------------------------------------------------------------------------
