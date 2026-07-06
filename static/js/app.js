@@ -157,7 +157,7 @@ function renderResults(results) {
     item.appendChild(title);
     item.appendChild(meta);
     item.appendChild(excerpt);
-    item.addEventListener("click", () => openArticle(r));
+    item.addEventListener("click", () => openArticle(r, item));
     resultsList.appendChild(item);
   });
 }
@@ -194,9 +194,82 @@ function endSpeedometerTransition() {
   speedometerVideo.pause();
 }
 
-async function openArticle(result) {
+// ---------------------------------------------------------------------------
+// Item -> photo morph (FLIP): the clicked result card grows and crossfades
+// into the dossier hero photo, so the transition reads as one continuous
+// motion instead of a video overlay followed by a hard page swap.
+// ---------------------------------------------------------------------------
+
+const GHOST_MORPH_MS = 520;
+
+function preloadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function createMorphGhost(itemEl) {
+  const rect = itemEl.getBoundingClientRect();
+  const ghost = document.createElement("div");
+  ghost.className = "dossier-ghost";
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+
+  const label = document.createElement("div");
+  label.className = "dossier-ghost-label";
+  label.innerHTML = itemEl.innerHTML;   // clone the card's own already-sanitized markup
+
+  const photoLayer = document.createElement("div");
+  photoLayer.className = "dossier-ghost-photo";
+
+  ghost.appendChild(label);
+  ghost.appendChild(photoLayer);
+  document.body.appendChild(ghost);
+
+  return {
+    async morphInto(targetImg, imageUrl) {
+      const targetRect = targetImg.getBoundingClientRect();
+
+      // Grow/move into position right away — never block the motion on the
+      // network. The dossier itself is already fully rendered underneath,
+      // so a slow image must not stall the transition (approved decision:
+      // the page renders even if the photo hasn't finished loading).
+      ghost.getBoundingClientRect(); // force layout before mutating the rect
+      ghost.style.top = `${targetRect.top}px`;
+      ghost.style.left = `${targetRect.left}px`;
+      ghost.style.width = `${targetRect.width}px`;
+      ghost.style.height = `${targetRect.height}px`;
+      ghost.classList.add("morphed");
+
+      // Crossfade the photo in only if it's ready before the morph itself
+      // finishes; otherwise skip straight to destroy() and let the dossier's
+      // own <img> onload handle the fade-in whenever it actually arrives.
+      const imageReady = await Promise.race([
+        preloadImage(imageUrl).then(() => true, () => false),
+        delay(GHOST_MORPH_MS),
+      ]);
+      if (imageReady) {
+        photoLayer.style.backgroundImage = `url("${imageUrl}")`;
+        ghost.classList.add("photo-ready");
+      }
+
+      await delay(GHOST_MORPH_MS);
+    },
+    destroy() {
+      ghost.remove();
+    },
+  };
+}
+
+async function openArticle(result, itemEl) {
   if (!result.article_id) return;
 
+  const ghost = itemEl ? createMorphGhost(itemEl) : null;
   const transitionPromise = playSpeedometerTransition();
   let detail = null;
 
@@ -206,6 +279,7 @@ async function openArticle(result) {
     detail = await resp.json();
   } catch (err) {
     console.error("Article detail failed:", err);
+    ghost?.destroy();
     endSpeedometerTransition();
     return;
   }
@@ -213,7 +287,14 @@ async function openArticle(result) {
   await transitionPromise;
   renderArticle(detail);
   transitionTo("article");
-  requestAnimationFrame(endSpeedometerTransition);
+  endSpeedometerTransition();
+
+  if (ghost) {
+    if (detail.hero_image_url) {
+      await ghost.morphInto(articlePhoto, detail.hero_image_url);
+    }
+    ghost.destroy();
+  }
 }
 
 function appendSpec(label, value) {
@@ -326,7 +407,8 @@ document.addEventListener("keydown", (e) => {
       selectedIndex = Math.max(selectedIndex - 1, -1);
       updateSelection();
     } else if (e.key === "Enter" && selectedIndex >= 0) {
-      openArticle(currentResults[selectedIndex]);
+      const itemEl = document.querySelectorAll(".result-item")[selectedIndex];
+      openArticle(currentResults[selectedIndex], itemEl);
     }
   }
   // Escape works from any state

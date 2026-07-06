@@ -472,7 +472,62 @@ body[data-state="article"] .article-view { display: block; }
 }
 
 .transition-overlay video {
-  width: min(72vw, 720px);
-  max-height: 72vh;
-  object-fit: contain;
+  width: min(60vw, 460px);
+  height: min(60vw, 460px);
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 60px 10px rgba(45, 212, 191, 0.22),
+    0 0 120px 40px rgba(220, 38, 38, 0.12);
+}
+
+/* ---------------------------------------------------------
+   9. Item -> photo morph ghost (FLIP transition)
+   --------------------------------------------------------- */
+.dossier-ghost {
+  position: fixed;
+  z-index: 90;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--bg-surface);
+  pointer-events: none;
+  transition:
+    top 520ms cubic-bezier(0.4, 0, 0.2, 1),
+    left 520ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 520ms cubic-bezier(0.4, 0, 0.2, 1),
+    height 520ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 520ms ease;
+}
+
+.dossier-ghost.morphed {
+  border-radius: var(--radius);
+}
+
+.dossier-ghost-label {
+  position: absolute;
+  inset: 0;
+  padding: 0.875rem 1rem;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 220ms ease;
+}
+
+.dossier-ghost-photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+
+.dossier-ghost.morphed .dossier-ghost-label {
+  opacity: 0;
+}
+
+.dossier-ghost.photo-ready .dossier-ghost-photo {
+  opacity: 1;
 }
