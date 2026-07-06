@@ -411,23 +411,239 @@ body[data-state="article"] .article-view { display: block; }
   font-size: 0.98rem;
   color: var(--text-primary);
   line-height: 1.75;
+  scroll-behavior: smooth;
 }
 
-.dossier-body table {
+.dossier-body::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.dossier-body p {
+  margin: 0 0 1.15rem;
+}
+
+.dossier-body p:first-of-type {
+  font-size: 1.08rem;
+  color: var(--text-primary);
+}
+
+.dossier-body a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(45, 212, 191, 0.35);
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.dossier-body a:hover {
+  color: var(--accent-hover);
+  border-bottom-color: var(--accent-hover);
+}
+
+.dossier-body ul,
+.dossier-body ol {
+  margin: 0 0 1.15rem;
+  padding-left: 1.4rem;
+}
+
+.dossier-body li {
+  margin-bottom: 0.4rem;
+}
+
+/* Section headings — Wikipedia wraps these in <div class="mw-heading">,
+   the h2/h3 selectors alone are enough since we target by tag, not depth. */
+.dossier-body h2 {
+  margin: 2.5rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  scroll-margin-top: 1.25rem;
+}
+
+.dossier-body h3 {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--accent);
+  scroll-margin-top: 1.25rem;
+}
+
+/* "On this page" quick nav, built from the article's own h2 sections */
+.dossier-toc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 2rem;
+  padding: 1rem 1.25rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dossier-toc-label {
+  flex-basis: 100%;
+  margin-bottom: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.dossier-toc a {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.dossier-toc a:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+}
+
+/* Infobox -> elegant spec card, floated like a magazine sidebar */
+.dossier-body table.infobox {
+  float: right;
+  clear: right;
+  width: min(300px, 40vw);
+  margin: 0 0 1.5rem 1.75rem;
+  border-collapse: collapse;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.85rem;
+}
+
+.dossier-body table.infobox tr,
+.dossier-body table.infobox th,
+.dossier-body table.infobox td {
+  background: none;
+  border: none;
+}
+
+.dossier-body table.infobox .infobox-above {
+  display: none; /* redundant — the dossier's own title above already covers this */
+}
+
+.dossier-body table.infobox .infobox-image {
+  padding: 0;
+}
+
+.dossier-body table.infobox .infobox-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dossier-body table.infobox .infobox-caption {
+  padding: 0.5rem 0.875rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-style: italic;
+  text-align: center;
+}
+
+.dossier-body table.infobox .infobox-header {
+  padding: 0.6rem 0.875rem 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-top: 1px solid var(--border);
+}
+
+.dossier-body table.infobox .infobox-label {
+  padding: 0.3rem 0.875rem 0.3rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  vertical-align: top;
+  white-space: normal;
+}
+
+.dossier-body table.infobox .infobox-data {
+  padding: 0.1rem 0.875rem 0.3rem;
+  color: var(--text-primary);
+}
+
+/* Generic data tables ("wikitable") elsewhere in the article body */
+.dossier-body table.wikitable {
+  width: 100%;
+  clear: both;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.dossier-body table.wikitable th,
+.dossier-body table.wikitable td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  background: none;
+}
+
+.dossier-body table.wikitable th {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+/* Fallback for any other table that isn't an infobox or a wikitable */
+.dossier-body table:not(.infobox):not(.wikitable) {
   border-collapse: collapse;
   margin: 1rem 0;
   white-space: normal;
 }
 
-.dossier-body th,
-.dossier-body td {
+.dossier-body table:not(.infobox):not(.wikitable) th,
+.dossier-body table:not(.infobox):not(.wikitable) td {
   border: 1px solid var(--border);
   padding: 0.4rem 0.6rem;
 }
 
-.dossier-body th {
+.dossier-body table:not(.infobox):not(.wikitable) th {
   text-align: left;
   background-color: var(--bg-surface);
+}
+
+/* Inline article thumbnails outside the infobox */
+.dossier-body .thumb {
+  margin: 0.5rem 0 1.25rem;
+}
+
+.dossier-body .thumbinner {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+.dossier-body .thumbinner img {
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.dossier-body .thumbcaption {
+  padding-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+@media (max-width: 760px) {
+  .dossier-body table.infobox {
+    float: none;
+    width: 100%;
+    margin: 0 0 1.5rem;
+  }
 }
 
 @media (max-width: 760px) {

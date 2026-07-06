@@ -318,6 +318,39 @@ function productionRange(detail) {
   return "";
 }
 
+// Wikipedia's rendered HTML carries its own inline `style="..."` attributes
+// (grey infobox headers, fixed widths, etc.) that would otherwise win over
+// our stylesheet. Stripping them lets .dossier-body's own CSS fully own the
+// look — no !important overrides needed, and nothing here touches search.
+function stripInlineStyles(container) {
+  container.querySelectorAll("[style]").forEach((el) => el.removeAttribute("style"));
+}
+
+// Build a compact "on this page" jump list from the article's own top-level
+// section headings so long entries stay easy to navigate.
+function buildTableOfContents(container) {
+  const headings = container.querySelectorAll("h2[id]");
+  if (headings.length < 2) return;
+
+  const toc = document.createElement("nav");
+  toc.className = "dossier-toc";
+  toc.setAttribute("aria-label", "On this page");
+
+  const label = document.createElement("span");
+  label.className = "dossier-toc-label";
+  label.textContent = "On this page";
+  toc.appendChild(label);
+
+  headings.forEach((heading) => {
+    const link = document.createElement("a");
+    link.href = `#${heading.id}`;
+    link.textContent = heading.textContent;
+    toc.appendChild(link);
+  });
+
+  container.insertBefore(toc, container.firstChild);
+}
+
 function renderArticle(detail) {
   articleTitle.textContent = detail.title || "";
   articleSource.textContent = detail.source_domain || "";
@@ -339,6 +372,8 @@ function renderArticle(detail) {
     // <script>, <style>, and on* event handler attributes before storing.
     // Local single-user offline app — XSS attack surface is near-zero.
     articleBody.innerHTML = detail.body_html;
+    stripInlineStyles(articleBody);   // let our own CSS restyle the raw Wikipedia markup
+    buildTableOfContents(articleBody);
   } else {
     articleBody.textContent = detail.body || "No content available.";
   }
