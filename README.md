@@ -104,6 +104,7 @@ A configuracao aplicada usa:
 - `discovery.type: single-node`
 - seguranca/TLS desabilitados para uso local
 - heap JVM fixo em 512 MB
+- watermarks de disco em valores absolutos (`10gb`, `5gb`, `2gb`) para um indice local com teto de 2 GB
 
 `main.py` tambem injeta essa configuracao no inicio quando `ES_HOME` esta definido, mas rodar `scripts/setup_es.py` deixa o ambiente explicito e mais facil de diagnosticar.
 
@@ -147,34 +148,34 @@ Antes de rodar o scraper, o Elasticsearch precisa estar ativo em `http://localho
 Rodar todas as fontes configuradas:
 
 ```bash
-python3 scripts/scraper.py --all
+python3 -m scripts.scraper --all
 ```
 
 Rodar apenas Wikipedia:
 
 ```bash
-python3 scripts/scraper.py --wikipedia
+python3 -m scripts.scraper --wikipedia
 ```
 
 Rodar apenas blogs:
 
 ```bash
-python3 scripts/scraper.py --blogs
+python3 -m scripts.scraper --blogs
 ```
 
 Usar um arquivo de configuracao alternativo:
 
 ```bash
-python3 scripts/scraper.py --all --config config/scraper.yaml
+python3 -m scripts.scraper --all --config config/scraper.yaml
 ```
 
 Recriar o indice antes de coletar dados:
 
 ```bash
-python3 scripts/scraper.py --all --recreate
+python3 -m scripts.scraper --all --recreate
 ```
 
-Use `--recreate` quando a estrutura do indice mudar, por exemplo apos adicionar um novo campo ao mapping.
+Use `--recreate` quando a estrutura do indice mudar, por exemplo apos adicionar um novo campo ao mapping, ou depois de uma falha de indexacao. Esse modo tambem limpa o estado SQLite de retomada do scraper para que os artigos sejam coletados e indexados novamente.
 
 ## Configuracao do scraper
 
@@ -241,19 +242,48 @@ Resposta:
 ```json
 [
   {
+    "article_id": "12345",
     "title": "Ford Mustang",
     "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
     "source_domain": "en.wikipedia.org",
     "excerpt": "Highlighted <b>excerpt</b>...",
-    "body": "Full plain-text article body...",
-    "body_html": "<div>Rendered article HTML...</div>",
     "score": 12.34,
     "took_ms": 8
   }
 ]
 ```
 
-`body_html` e usado pela tela de artigo para renderizar tabelas e estrutura basica quando o documento foi coletado com suporte a HTML.
+`/api/search` omite de proposito os campos completos do artigo, como `body`, `body_html`, `specs` e `hero_image_url`, para que cada busca com debounce continue leve.
+
+### `GET /api/articles/<article_id>`
+
+Retorna o payload completo de um resultado clicado. Essa rota so e chamada depois que o usuario seleciona um resultado, entao o HTML do artigo e os metadados da imagem nao afetam a latencia de digitacao da busca.
+
+Exemplo:
+
+```json
+{
+  "article_id": "12345",
+  "title": "Ford Mustang",
+  "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
+  "source_domain": "en.wikipedia.org",
+  "excerpt": "The Ford Mustang is a pony car.",
+  "body": "Full plain-text article body...",
+  "body_html": "<div>Rendered article HTML...</div>",
+  "hero_image_url": "https://upload.wikimedia.org/example.jpg",
+  "manufacturer": "Ford",
+  "production_start": 1964,
+  "production_end": 2023,
+  "era_bucket": "1960s",
+  "body_style": "Coupe",
+  "country_of_origin": "United States",
+  "specs": {
+    "engine": "V8"
+  }
+}
+```
+
+`hero_image_url` e opcional. A UI renderiza o dossie imediatamente e faz o fade-in da imagem quando ela termina de carregar.
 
 ## Modelo de relevancia
 
@@ -414,6 +444,22 @@ Verifique:
 - se a porta `9200` esta livre;
 - se a configuracao em `$ES_HOME/config/elasticsearch.yml` usa `discovery.type: single-node`;
 - se a maquina tem memoria suficiente para iniciar o Elasticsearch com heap de 512 MB.
+
+### `car_articles` fica `red` com `unassigned_primary_shards: 1`
+
+Isso normalmente indica bloqueio de alocacao no Elasticsearch. No modo local do NitroFind, a configuracao copiada por `scripts/setup_es.py` usa watermarks absolutos de disco para evitar que uma particao grande, mas acima de 90% de uso, bloqueie um indice pequeno.
+
+Reinicie a aplicacao para reinjetar a configuracao:
+
+```bash
+python3 main.py
+```
+
+Se o problema continuar, consulte:
+
+```bash
+curl -s "http://localhost:9200/_cluster/allocation/explain?pretty" -H "Content-Type: application/json" -d '{"index":"car_articles","shard":0,"primary":true}'
+```
 
 ### A porta `5000` ja esta em uso
 
