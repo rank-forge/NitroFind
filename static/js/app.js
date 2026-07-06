@@ -40,6 +40,8 @@ let debounceTimer = null;
 let abortController = null;
 
 const DEBOUNCE_MS = 300;
+const HISTORY_KEY = 'nitrofind-history';
+const HISTORY_MAX = 10;
 
 // ---------------------------------------------------------------------------
 // Cached DOM references (queried once at load — never inside render loops)
@@ -63,6 +65,9 @@ const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
 const articleBody     = document.getElementById("article-body");
+const historyList     = document.getElementById("history-list");
+const themeToggleBtn  = document.getElementById("theme-toggle");
+const themeToggleBtnResults = document.getElementById("theme-toggle-results");
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -99,6 +104,7 @@ searchInputResults.addEventListener("input", () => handleSearchInput(searchInput
 
 async function runSearch(q) {
   currentQuery = q;
+  addToHistory(q);   // HIST-01: write after empty-string guard resolves in handleSearchInput
 
   // Cancel any in-flight request before starting a new one (Pitfall 4)
   if (abortController) abortController.abort();
@@ -285,6 +291,77 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Search history (HIST-01, HIST-02)
+// ---------------------------------------------------------------------------
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+
+function addToHistory(query) {
+  let history;
+  try {
+    history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (_) {
+    history = [];
+  }
+  history = history.filter(q => q !== query);
+  history.unshift(query);
+  history = history.slice(0, HISTORY_MAX);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (_) { /* degrade silently — localStorage quota or private mode */ }
+  renderHistory(history);
+}
+
+function renderHistory(history) {
+  historyList.innerHTML = '';   // empties container structure — safe, no user data here
+  history.forEach(query => {
+    const li = document.createElement('li');
+    li.className = 'history-item';
+    li.textContent = query;     // textContent — NEVER innerHTML for user-supplied strings
+    li.addEventListener('click', () => executeHistoryQuery(query));
+    historyList.appendChild(li);
+  });
+  historyList.style.display = history.length ? 'block' : 'none';
+}
+
+function executeHistoryQuery(query) {
+  searchInput.value = query;
+  searchInputResults.value = query;
+  currentPage = 1;
+  runSearch(query);   // addToHistory() inside runSearch() moves item to front automatically
+}
+
+// ---------------------------------------------------------------------------
+// Theme toggle (THME-01)
+// ---------------------------------------------------------------------------
+
+function applyThemeLabel() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const label = isDark ? 'Light' : 'Dark';
+  if (themeToggleBtn) themeToggleBtn.textContent = label;
+  if (themeToggleBtnResults) themeToggleBtnResults.textContent = label;
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme;
+  const next = (current === 'dark') ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem('nitrofind-theme', next);
+  } catch (_) { /* degrade silently */ }
+  applyThemeLabel();
+}
+
+if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
+if (themeToggleBtnResults) themeToggleBtnResults.addEventListener('click', toggleTheme);
+
+// ---------------------------------------------------------------------------
 // ES warmup polling (D-07)
 // ---------------------------------------------------------------------------
 
@@ -313,3 +390,7 @@ function startWarmupPolling() {
 
 // Kick off immediately on page load
 startWarmupPolling();
+
+// History & theme init
+renderHistory(loadHistory());
+applyThemeLabel();
