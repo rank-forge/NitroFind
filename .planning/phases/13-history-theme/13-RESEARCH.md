@@ -493,7 +493,7 @@ html[data-theme="light"] {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **History list visibility trigger**
    - What we know: Success criterion says "history list shows the last 10 unique queries" — implies a visible list element
