@@ -4,17 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NitroFind</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem('nitrofind-theme');
+      document.documentElement.dataset.theme = (t === 'light') ? 'light' : 'dark';
+    }());
+  </script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body data-state="home">
 
   <!-- Home view: centered logo + search box -->
   <div class="home-view">
+    <button id="theme-toggle" type="button" class="theme-toggle-btn">Light</button>
     <h1 class="logo">NitroFind</h1>
     <div class="search-wrap">
       <input id="search-input" type="search" placeholder="Search cars…" autocomplete="off" disabled>
       <p id="status-line">Starting up…</p>
     </div>
+    <ul id="history-list" style="display:none;"></ul>
   </div>
 
   <!-- Results view: top bar + filter row + results list -->
@@ -22,6 +30,7 @@
     <header class="top-bar">
       <span class="logo-small">NitroFind</span>
       <input id="search-input-results" type="search" placeholder="Search cars…" autocomplete="off">
+      <button id="theme-toggle-results" type="button" class="theme-toggle-btn">Light</button>
     </header>
     <div class="filter-row">
       <select id="filter-manufacturer">
