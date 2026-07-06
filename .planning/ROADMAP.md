@@ -38,7 +38,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 - [x] **Phase 10: Search Quality & Sort** - Add fuzzy/phrase search routing and sort controls (completed 2026-06-26)
 - [x] **Phase 11: Extended Filtering** - Year range and country filters in API and UI (completed 2026-07-03)
 - [x] **Phase 12: Pagination** - Result pages with Previous / Next navigation and total hit count (completed 2026-07-05)
-- [ ] **Phase 13: History & Theme** - Search history (localStorage) and dark/light theme toggle
+- [x] **Phase 13: History & Theme** - Search history (localStorage) and dark/light theme toggle (completed 2026-07-06)
 
 ## Phase Details
 
@@ -145,7 +145,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 
 **Wave 2** *(blocked on Wave 1)*
 
-  - [ ] 13-03-PLAN.md — Human UI verification checkpoint (history, theme switch, FOUC-free reload, no regression)
+  - [x] 13-03-PLAN.md — Human UI verification checkpoint (history, theme switch, FOUC-free reload, no regression)
 
 **UI hint**: yes
 
@@ -165,4 +165,4 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
 | 12. Pagination | v1.2 | 3/3 | Complete    | 2026-07-05 |
-| 13. History & Theme | v1.2 | 2/3 | In Progress|  |
+| 13. History & Theme | v1.2 | 3/3 | Complete    | 2026-07-06 |

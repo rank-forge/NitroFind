@@ -34,12 +34,12 @@
 
 ### Search History (HIST)
 
-- [ ] **HIST-01**: Last 10 unique search queries are saved to localStorage automatically as the user searches
-- [ ] **HIST-02**: User can view the history list and click an entry to re-execute that query
+- [x] **HIST-01**: Last 10 unique search queries are saved to localStorage automatically as the user searches
+- [x] **HIST-02**: User can view the history list and click an entry to re-execute that query
 
 ### Theme Toggle (THME)
 
-- [ ] **THME-01**: User can toggle between dark and light themes via a button in the header; preference is stored in localStorage and applied on page reload
+- [x] **THME-01**: User can toggle between dark and light themes via a button in the header; preference is stored in localStorage and applied on page reload
 
 ## Future Requirements (v1.3+)
 
