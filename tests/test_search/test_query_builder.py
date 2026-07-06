@@ -25,6 +25,7 @@ from nitrofind.search.query_builder import (
     build_filter_clauses,
     build_function_score_query,
     build_search_body,
+    DETAIL_SOURCE_FIELDS,
     MAX_RESULT_SIZE,
     DEFAULT_RECENCY_WEIGHT,
     DEFAULT_LENGTH_WEIGHT,
@@ -262,14 +263,47 @@ def test_build_search_body_from_param():
 
 
 def test_build_search_body_source_fields():
-    """build_search_body includes expected _source fields (Phase 9 adds body_html)."""
+    """build_search_body returns lightweight list fields only."""
     body = build_search_body("Ferrari")
     expected_source = [
-        "title", "url", "source_domain", "excerpt", "body", "body_html",
-        "published_at", "word_count", "has_infobox",
-        "manufacturer", "era_bucket", "body_style",
+        "article_id",
+        "title",
+        "url",
+        "source_domain",
+        "excerpt",
+        "manufacturer",
+        "era_bucket",
+        "body_style",
     ]
     assert body["_source"] == expected_source
+    assert "body" not in body["_source"]
+    assert "body_html" not in body["_source"]
+    assert "hero_image_url" not in body["_source"]
+
+
+def test_detail_source_fields_include_article_payload():
+    """DETAIL_SOURCE_FIELDS contains full article fields for the click-through endpoint."""
+    assert DETAIL_SOURCE_FIELDS == [
+        "article_id",
+        "title",
+        "url",
+        "source_domain",
+        "excerpt",
+        "body",
+        "body_html",
+        "hero_image_url",
+        "published_at",
+        "word_count",
+        "has_infobox",
+        "image_count",
+        "manufacturer",
+        "production_start",
+        "production_end",
+        "era_bucket",
+        "body_style",
+        "country_of_origin",
+        "specs",
+    ]
 
 
 def test_build_search_body_highlight_title():
