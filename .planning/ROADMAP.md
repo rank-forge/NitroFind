@@ -141,7 +141,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 
 **Wave 1** *(blocked on Wave 0)*
 
-  - [ ] 13-02-PLAN.md — Frontend implementation (index.html + style.css + app.js): history (HIST-01/02) + theme toggle (THME-01)
+  - [x] 13-02-PLAN.md — Frontend implementation (index.html + style.css + app.js): history (HIST-01/02) + theme toggle (THME-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -165,4 +165,4 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
 | 12. Pagination | v1.2 | 3/3 | Complete    | 2026-07-05 |
-| 13. History & Theme | v1.2 | 1/3 | In Progress|  |
+| 13. History & Theme | v1.2 | 2/3 | In Progress|  |
