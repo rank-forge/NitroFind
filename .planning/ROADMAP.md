@@ -133,7 +133,20 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
   3. Clicking the theme toggle in the header switches between dark and light themes without a page reload
   4. After toggling to light mode and refreshing the page, the light theme is still active (preference persisted in localStorage)
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 0**
+
+  - [ ] 13-01-PLAN.md — Failing-test scaffold (3 RED template-structure tests: history-list, theme-toggle, FOUC script)
+
+**Wave 1** *(blocked on Wave 0)*
+
+  - [ ] 13-02-PLAN.md — Frontend implementation (index.html + style.css + app.js): history (HIST-01/02) + theme toggle (THME-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+  - [ ] 13-03-PLAN.md — Human UI verification checkpoint (history, theme switch, FOUC-free reload, no regression)
+
 **UI hint**: yes
 
 ## Progress
@@ -152,4 +165,4 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
 | 12. Pagination | v1.2 | 3/3 | Complete    | 2026-07-05 |
-| 13. History & Theme | v1.2 | 0/? | Not started | - |
+| 13. History & Theme | v1.2 | 0/3 | Planned | - |
