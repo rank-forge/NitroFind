@@ -70,9 +70,11 @@ class ArticleResult:
     score: float
 
     # Optional fields with safe defaults matching ES mapping types
+    article_id: str = ""
     excerpt: str = ""
     body: str = ""          # W0-EXT-01: full article text for SRCH-03 detail pane
     body_html: str = ""     # Phase 9: rendered HTML with <table> for article view
+    hero_image_url: str = ""
     published_at: str | None = None
     word_count: int = 0
     has_infobox: bool = False
@@ -112,9 +114,11 @@ class ArticleResult:
             url=src.get("url", ""),
             source_domain=src.get("source_domain", ""),
             score=score,
+            article_id=src.get("article_id", ""),
             excerpt=src.get("excerpt", ""),
             body=src.get("body", ""),  # W0-EXT-01
             body_html=src.get("body_html", ""),
+            hero_image_url=src.get("hero_image_url", ""),
             published_at=src.get("published_at"),
             word_count=word_count,
             has_infobox=src.get("has_infobox", False),

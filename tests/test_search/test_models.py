@@ -57,9 +57,9 @@ def test_article_result_all_fields():
     """ArticleResult has exactly the expected set of fields."""
     expected_fields = {
         "title", "url", "source_domain", "score",
-        "excerpt", "published_at", "word_count", "has_infobox",
+        "article_id", "excerpt", "published_at", "word_count", "has_infobox",
         "manufacturer", "era_bucket", "body_style",
-        "highlight_title", "highlight_body",
+        "hero_image_url", "highlight_title", "highlight_body",
         "body", "body_html",
     }
     import dataclasses
@@ -167,6 +167,32 @@ def test_body_html_field_default():
     """ArticleResult.body_html defaults to empty string (Phase 9)."""
     r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
     assert r.body_html == ""
+
+
+def test_article_result_identity_and_hero_defaults():
+    """ArticleResult defaults optional detail fields safely."""
+    r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
+    assert r.article_id == ""
+    assert r.hero_image_url == ""
+
+
+def test_article_result_identity_and_hero_from_es_hit():
+    """from_es_hit populates article_id and hero_image_url from _source."""
+    hit = {
+        "_score": 1.0,
+        "_source": {
+            "article_id": "12345",
+            "title": "Ferrari 308",
+            "url": "https://en.wikipedia.org/wiki/Ferrari_308",
+            "source_domain": "en.wikipedia.org",
+            "hero_image_url": "https://upload.wikimedia.org/ferrari-308.jpg",
+        },
+    }
+
+    r = ArticleResult.from_es_hit(hit)
+
+    assert r.article_id == "12345"
+    assert r.hero_image_url == "https://upload.wikimedia.org/ferrari-308.jpg"
 
 
 def test_article_result_body_html_from_es_hit():
