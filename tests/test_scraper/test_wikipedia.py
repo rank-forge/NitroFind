@@ -218,6 +218,69 @@ def test_yield_documents_skips_already_visited():
     assert len(docs) == 1, f"Expected 1 doc (pageid 100), got {len(docs)}: {docs!r}"
 
 
+def test_yield_documents_does_not_mark_visited_before_indexing():
+    """Visited state is owned by BulkIndexer after successful ES confirmation."""
+    mock_wiki = MagicMock()
+
+    mock_page = MagicMock()
+    mock_page.pageid = 100
+    mock_page.title = "Unvisited Car"
+    mock_page.url = "https://en.wikipedia.org/wiki/Unvisited_Car"
+    mock_page.content = "Body text for unvisited car article"
+    mock_page.images = []
+    mock_page.infobox = {"manufacturer": "SomeMaker"}
+    mock_wiki.page.return_value = mock_page
+
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+
+    def fake_get_members(cat_title, cmtype, return_titles=False):
+        if cmtype == "page":
+            return [100]
+        return []
+
+    with patch("nitrofind.scraper.wikipedia.MediaWikiAPI", return_value=mock_wiki), \
+         patch.object(
+             WikipediaScraper,
+             "_get_category_members_raw",
+             side_effect=fake_get_members,
+         ):
+        scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
+        docs = list(scraper.yield_documents())
+
+    assert len(docs) == 1
+    mock_state.mark_visited.assert_not_called()
+
+
+def test_yield_documents_skips_fetch_exceptions_and_continues():
+    """A transient page fetch failure must not abort the whole Wikipedia scrape."""
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+
+    good_doc = {"article_id": "2", "title": "Second Car", "body": "text"}
+
+    def fake_get_members(cat_title, cmtype, return_titles=False):
+        if cmtype == "page":
+            return [1, 2]
+        return []
+
+    with patch("nitrofind.scraper.wikipedia.MediaWikiAPI"), \
+         patch.object(
+             WikipediaScraper,
+             "_get_category_members_raw",
+             side_effect=fake_get_members,
+         ), \
+         patch.object(
+             WikipediaScraper,
+             "_fetch_and_build_doc",
+             side_effect=[RuntimeError("temporary read timeout"), good_doc],
+         ):
+        scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
+        docs = list(scraper.yield_documents())
+
+    assert docs == [good_doc]
+
+
 # ---------------------------------------------------------------------------
 # Security/etiquette: User-Agent
 # ---------------------------------------------------------------------------
@@ -306,6 +369,73 @@ def test_fetch_and_build_doc_returns_body_html():
 
     assert doc is not None
     assert "body_html" in doc
+
+
+def test_fetch_and_build_doc_sets_hero_image_url_from_html(monkeypatch):
+    """Wikipedia docs use the first relevant rendered image as hero_image_url."""
+    mock_page = MagicMock()
+    mock_page.pageid = 12345
+    mock_page.title = "Ferrari 308"
+    mock_page.url = "https://en.wikipedia.org/wiki/Ferrari_308"
+    mock_page.content = "A real plain text body about Ferrari 308"
+    mock_page.images = ["https://upload.wikimedia.org/ferrari-308.jpg"]
+    mock_page.infobox = {"manufacturer": "Ferrari", "production": "1975 to 1985"}
+
+    mock_wiki = MagicMock()
+    mock_wiki.page.return_value = mock_page
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+
+    with patch("nitrofind.scraper.wikipedia.MediaWikiAPI", return_value=mock_wiki):
+        scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
+        monkeypatch.setattr(
+            scraper,
+            "_fetch_html_body",
+            lambda pageid: (
+                '<div class="mw-parser-output">'
+                '<table class="infobox">'
+                '<img src="https://upload.wikimedia.org/ferrari-308.jpg" width="250" height="160">'
+                "</table>"
+                "</div>"
+            ),
+        )
+        doc = scraper._fetch_and_build_doc(pageid=12345)
+
+    assert doc is not None
+    assert doc["hero_image_url"] == "https://upload.wikimedia.org/ferrari-308.jpg"
+
+
+def test_fetch_and_build_doc_skips_svg_hero_image(monkeypatch):
+    """Wikipedia hero image selection ignores SVG icons and picks the next bitmap."""
+    mock_page = MagicMock()
+    mock_page.pageid = 12345
+    mock_page.title = "Ferrari 308"
+    mock_page.url = "https://en.wikipedia.org/wiki/Ferrari_308"
+    mock_page.content = "A real plain text body about Ferrari 308"
+    mock_page.images = []
+    mock_page.infobox = {"manufacturer": "Ferrari", "production": "1975 to 1985"}
+
+    mock_wiki = MagicMock()
+    mock_wiki.page.return_value = mock_page
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+
+    with patch("nitrofind.scraper.wikipedia.MediaWikiAPI", return_value=mock_wiki):
+        scraper = WikipediaScraper(config=SAMPLE_CONFIG, state=mock_state)
+        monkeypatch.setattr(
+            scraper,
+            "_fetch_html_body",
+            lambda pageid: (
+                '<div class="mw-parser-output">'
+                '<img src="https://upload.wikimedia.org/logo.svg">'
+                '<img src="//upload.wikimedia.org/ferrari-308.jpg" width="250" height="160">'
+                "</div>"
+            ),
+        )
+        doc = scraper._fetch_and_build_doc(pageid=12345)
+
+    assert doc is not None
+    assert doc["hero_image_url"] == "https://upload.wikimedia.org/ferrari-308.jpg"
 
 
 # ---------------------------------------------------------------------------

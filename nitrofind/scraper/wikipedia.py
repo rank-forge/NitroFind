@@ -101,6 +101,29 @@ def _clean_wikipedia_html(raw_html: str) -> str:
     return str(main)
 
 
+def _is_relevant_image_url(url: str) -> bool:
+    """Return True for likely article photos and False for icons/logos/data URLs."""
+    lowered = url.lower()
+    if not lowered:
+        return False
+    if lowered.startswith("data:"):
+        return False
+    blocked = (".svg", "logo", "icon", "commons-logo", "wikimedia-logo")
+    return not any(part in lowered for part in blocked)
+
+
+def _best_hero_image_url(html: str) -> str:
+    """Pick the first relevant image URL from rendered article HTML."""
+    soup = BeautifulSoup(html or "", "lxml")
+    for img in soup.select("img[src]"):
+        src = str(img.get("src", "")).strip()
+        if src.startswith("//"):
+            src = "https:" + src
+        if _is_relevant_image_url(src):
+            return src
+    return ""
+
+
 class WikipediaScraper:
     """Walks Wikipedia category trees and yields document dicts for car articles.
 
@@ -174,14 +197,20 @@ class WikipediaScraper:
                 logger.debug("Skipping already-indexed pageid=%s", pageid)
                 continue
 
-            doc = self._fetch_and_build_doc(pageid)
+            try:
+                doc = self._fetch_and_build_doc(pageid)
+            except Exception as exc:
+                logger.warning(
+                    "Skipping pageid=%s after fetch failure: %s: %s",
+                    pageid,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
             if doc is None:
                 time.sleep(self._rate_limit)  # respect rate limit even on fetch failure
                 continue
 
-            # Record state BEFORE yield so state is durable even if the caller
-            # crashes mid-batch and never returns control to this generator (CR-01)
-            self._state.mark_visited(str(pageid), "wikipedia")
             yield doc
             yielded_count += 1
 
@@ -371,6 +400,7 @@ class WikipediaScraper:
 
         # BUG-01 fix: fetch rendered HTML with <table> elements preserved
         body_html = self._fetch_html_body(pageid)
+        hero_image_url = _best_hero_image_url(body_html)
 
         # Multi-key fallback chain for production year (RESEARCH.md Open Question 3)
         raw_production = (
@@ -424,6 +454,7 @@ class WikipediaScraper:
             "word_count": len(body_text.split()),
             "has_infobox": True,
             "image_count": len(page.images) if page.images else 0,
+            "hero_image_url": hero_image_url,
             # SCHEMA-03: full-text body + excerpt + stored HTML
             "body": body_text,
             "body_html": body_html,                # BUG-01: stored HTML with <table> elements (index:false)

@@ -40,6 +40,8 @@ let debounceTimer = null;
 let abortController = null;
 
 const DEBOUNCE_MS = 300;
+const TRANSITION_MIN_MS = 750;
+const TRANSITION_MAX_MS = 1250;
 const HISTORY_KEY = 'nitrofind-history';
 const HISTORY_MAX = 10;
 
@@ -65,6 +67,13 @@ const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
 const articleBody     = document.getElementById("article-body");
+const transitionOverlay = document.getElementById("transition-overlay");
+const speedometerVideo  = document.getElementById("speedometer-video");
+const articlePhoto      = document.getElementById("article-photo");
+const articlePhotoPlaceholder = document.getElementById("article-photo-placeholder");
+const articleEra        = document.getElementById("article-era");
+const articleSummary    = document.getElementById("article-summary");
+const articleSpecs      = document.getElementById("article-specs");
 const historyList     = document.getElementById("history-list");
 const themeToggleBtn  = document.getElementById("theme-toggle");
 const themeToggleBtnResults = document.getElementById("theme-toggle-results");
@@ -175,7 +184,7 @@ function renderResults(results) {
     item.appendChild(title);
     item.appendChild(meta);
     item.appendChild(excerpt);
-    item.addEventListener("click", () => openArticle(r));
+    item.addEventListener("click", () => openArticle(r, item));
     resultsList.appendChild(item);
   });
 }
@@ -190,21 +199,239 @@ function renderPagination(total, page) {
 // Article view (SRCH-03, D-05)
 // ---------------------------------------------------------------------------
 
-function openArticle(result) {
-  articleTitle.textContent  = result.title;                          // textContent
-  articleSource.textContent = result.source_domain;                  // textContent
-  const htmlContent = result.body_html || "";
-  if (htmlContent) {
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function playSpeedometerTransition() {
+  transitionOverlay.classList.add("active");
+  speedometerVideo.currentTime = 0;
+
+  const startedAt = performance.now();
+  try {
+    await speedometerVideo.play();
+  } catch (_) {
+    return delay(TRANSITION_MIN_MS);
+  }
+
+  await delay(TRANSITION_MAX_MS);
+  speedometerVideo.pause();
+  const elapsed = performance.now() - startedAt;
+  if (elapsed < TRANSITION_MIN_MS) {
+    await delay(TRANSITION_MIN_MS - elapsed);
+  }
+}
+
+function endSpeedometerTransition() {
+  transitionOverlay.classList.remove("active");
+  speedometerVideo.pause();
+}
+
+// ---------------------------------------------------------------------------
+// Item -> photo morph (FLIP): the clicked result card grows and crossfades
+// into the dossier hero photo, so the transition reads as one continuous
+// motion instead of a video overlay followed by a hard page swap.
+// ---------------------------------------------------------------------------
+
+const GHOST_MORPH_MS = 520;
+
+function preloadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function createMorphGhost(itemEl) {
+  const rect = itemEl.getBoundingClientRect();
+  const ghost = document.createElement("div");
+  ghost.className = "dossier-ghost";
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+
+  const label = document.createElement("div");
+  label.className = "dossier-ghost-label";
+  label.innerHTML = itemEl.innerHTML;   // clone the card's own already-sanitized markup
+
+  const photoLayer = document.createElement("div");
+  photoLayer.className = "dossier-ghost-photo";
+
+  ghost.appendChild(label);
+  ghost.appendChild(photoLayer);
+  document.body.appendChild(ghost);
+
+  return {
+    async morphInto(targetImg, imageUrl) {
+      const targetRect = targetImg.getBoundingClientRect();
+
+      // Grow/move into position right away — never block the motion on the
+      // network. The dossier itself is already fully rendered underneath,
+      // so a slow image must not stall the transition (approved decision:
+      // the page renders even if the photo hasn't finished loading).
+      ghost.getBoundingClientRect(); // force layout before mutating the rect
+      ghost.style.top = `${targetRect.top}px`;
+      ghost.style.left = `${targetRect.left}px`;
+      ghost.style.width = `${targetRect.width}px`;
+      ghost.style.height = `${targetRect.height}px`;
+      ghost.classList.add("morphed");
+
+      // Crossfade the photo in only if it's ready before the morph itself
+      // finishes; otherwise skip straight to destroy() and let the dossier's
+      // own <img> onload handle the fade-in whenever it actually arrives.
+      const imageReady = await Promise.race([
+        preloadImage(imageUrl).then(() => true, () => false),
+        delay(GHOST_MORPH_MS),
+      ]);
+      if (imageReady) {
+        photoLayer.style.backgroundImage = `url("${imageUrl}")`;
+        ghost.classList.add("photo-ready");
+      }
+
+      await delay(GHOST_MORPH_MS);
+    },
+    destroy() {
+      ghost.remove();
+    },
+  };
+}
+
+async function openArticle(result, itemEl) {
+  if (!result.article_id) return;
+
+  const ghost = itemEl ? createMorphGhost(itemEl) : null;
+  const transitionPromise = playSpeedometerTransition();
+  let detail = null;
+
+  try {
+    const resp = await fetch(`/api/articles/${encodeURIComponent(result.article_id)}`);
+    if (!resp.ok) throw new Error(`Article detail failed: ${resp.status}`);
+    detail = await resp.json();
+  } catch (err) {
+    console.error("Article detail failed:", err);
+    ghost?.destroy();
+    endSpeedometerTransition();
+    return;
+  }
+
+  await transitionPromise;
+  renderArticle(detail);
+  transitionTo("article");
+  endSpeedometerTransition();
+
+  if (ghost) {
+    if (detail.hero_image_url) {
+      await ghost.morphInto(articlePhoto, detail.hero_image_url);
+    }
+    ghost.destroy();
+  }
+}
+
+function appendSpec(label, value) {
+  if (value === null || value === undefined || value === "") return;
+
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const definition = document.createElement("dd");
+  definition.textContent = String(value);
+
+  articleSpecs.appendChild(term);
+  articleSpecs.appendChild(definition);
+}
+
+function productionRange(detail) {
+  if (detail.production_start && detail.production_end) {
+    return `${detail.production_start}-${detail.production_end}`;
+  }
+  if (detail.production_start) return String(detail.production_start);
+  if (detail.production_end) return String(detail.production_end);
+  return "";
+}
+
+// Wikipedia's rendered HTML carries its own inline `style="..."` attributes
+// (grey infobox headers, fixed widths, etc.) that would otherwise win over
+// our stylesheet. Stripping them lets .dossier-body's own CSS fully own the
+// look — no !important overrides needed, and nothing here touches search.
+function stripInlineStyles(container) {
+  container.querySelectorAll("[style]").forEach((el) => el.removeAttribute("style"));
+}
+
+// Build a compact "on this page" jump list from the article's own top-level
+// section headings so long entries stay easy to navigate.
+function buildTableOfContents(container) {
+  const headings = container.querySelectorAll("h2[id]");
+  if (headings.length < 2) return;
+
+  const toc = document.createElement("nav");
+  toc.className = "dossier-toc";
+  toc.setAttribute("aria-label", "On this page");
+
+  const label = document.createElement("span");
+  label.className = "dossier-toc-label";
+  label.textContent = "On this page";
+  toc.appendChild(label);
+
+  headings.forEach((heading) => {
+    const link = document.createElement("a");
+    link.href = `#${heading.id}`;
+    link.textContent = heading.textContent;
+    toc.appendChild(link);
+  });
+
+  container.insertBefore(toc, container.firstChild);
+}
+
+function renderArticle(detail) {
+  articleTitle.textContent = detail.title || "";
+  articleSource.textContent = detail.source_domain || "";
+  articleEra.textContent = detail.era_bucket || "";
+  articleSummary.textContent = detail.excerpt || "";
+
+  articleSpecs.innerHTML = "";
+  appendSpec("Maker", detail.manufacturer);
+  appendSpec("Production", productionRange(detail));
+  appendSpec("Body", detail.body_style);
+  appendSpec("Origin", detail.country_of_origin);
+  appendSpec("Words", detail.word_count);
+
+  renderArticleImage(detail);
+
+  if (detail.body_html) {
     // innerHTML is intentional — renders <table>, <h2>, etc. (Phase 9, BUG-01).
     // Matches existing excerpt.innerHTML precedent (D-10). Scraper strips
     // <script>, <style>, and on* event handler attributes before storing.
     // Local single-user offline app — XSS attack surface is near-zero.
-    articleBody.innerHTML = htmlContent;
+    articleBody.innerHTML = detail.body_html;
+    stripInlineStyles(articleBody);   // let our own CSS restyle the raw Wikipedia markup
+    buildTableOfContents(articleBody);
   } else {
-    // Fallback for articles without body_html (scraped before Phase 9)
-    articleBody.textContent = result.body || "No content available.";
+    articleBody.textContent = detail.body || "No content available.";
   }
-  transitionTo("article");
+}
+
+function renderArticleImage(detail) {
+  articlePhoto.classList.remove("loaded");
+  articlePhoto.removeAttribute("src");
+  articlePhoto.alt = detail.title ? `${detail.title} photo` : "Car photo";
+
+  if (!detail.hero_image_url) {
+    articlePhotoPlaceholder.dataset.state = "missing";
+    return;
+  }
+
+  articlePhotoPlaceholder.dataset.state = "loading";
+  articlePhoto.onload = () => {
+    articlePhotoPlaceholder.dataset.state = "loaded";
+    articlePhoto.classList.add("loaded");
+  };
+  articlePhoto.onerror = () => {
+    articlePhotoPlaceholder.dataset.state = "missing";
+    articlePhoto.classList.remove("loaded");
+  };
+  articlePhoto.src = detail.hero_image_url;
 }
 
 backBtn.addEventListener("click", () => {
@@ -276,7 +503,8 @@ document.addEventListener("keydown", (e) => {
       selectedIndex = Math.max(selectedIndex - 1, -1);
       updateSelection();
     } else if (e.key === "Enter" && selectedIndex >= 0) {
-      openArticle(currentResults[selectedIndex]);
+      const itemEl = document.querySelectorAll(".result-item")[selectedIndex];
+      openArticle(currentResults[selectedIndex], itemEl);
     }
   }
   // Escape works from any state

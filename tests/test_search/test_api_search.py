@@ -39,12 +39,11 @@ def client_with_search(monkeypatch):
                 {
                     "_score": 2.5,
                     "_source": {
+                        "article_id": "12345",
                         "title": "Ford Mustang",
                         "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
                         "source_domain": "en.wikipedia.org",
                         "excerpt": "The Ford Mustang is a pony car.",
-                        "body": "Full text.",
-                        "body_html": "<p>Full text.</p>",
                     },
                     "highlight": {
                         "body": ["The <b>Mustang</b> is a pony car."]
@@ -71,11 +70,11 @@ def client_no_highlight(monkeypatch):
                 {
                     "_score": 1.8,
                     "_source": {
+                        "article_id": "12345",
                         "title": "Ford Mustang",
                         "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
                         "source_domain": "en.wikipedia.org",
                         "excerpt": "The Ford Mustang is a pony car.",
-                        "body": "Full text.",
                     },
                     # No "highlight" key — ArticleResult.from_es_hit returns empty lists
                 }
@@ -110,14 +109,16 @@ def test_search_returns_result_array(client_with_search):
 
 
 def test_search_result_shape(client_with_search):
-    """Each result item has exactly the seven expected keys (no took_ms per-item); took_ms/total/page are at wrapper level. [API-01]"""
+    """Each search item has exactly the lightweight expected keys (no took_ms per-item);
+    took_ms/total/page are at wrapper level. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
     data = resp.get_json()
     item = data["results"][0]
     assert set(item.keys()) == {
-        "title", "url", "source_domain", "excerpt", "body", "body_html", "score"
+        "article_id", "title", "url", "source_domain", "excerpt", "score"
     }
+    assert item["article_id"] == "12345"
     assert item["title"] == "Ford Mustang"
     assert data["took_ms"] == 12  # from mock took=12, at wrapper level
     assert data["total"] == 1

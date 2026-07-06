@@ -380,6 +380,69 @@ def test_state_visited_url_is_skipped():
     )
 
 
+def test_state_visited_article_id_is_skipped_without_fetching_article():
+    """D-06: blog resume state accepts the article_id that BulkIndexer confirms."""
+    mock_state = MagicMock()
+    article_url = "https://www.hagerty.com/media/foo"
+    mock_state.is_visited.side_effect = lambda item_id: item_id == "hagerty.com__foo"
+
+    scraper = _make_scraper(state=mock_state)
+
+    listing_html = (
+        "<html><body>"
+        "<a class='article-link' href='/media/foo'>Foo Article</a>"
+        "</body></html>"
+    )
+
+    call_tracker = []
+
+    def mock_get(url, **kwargs):
+        call_tracker.append(url)
+        if "all-articles" in url:
+            return _make_mock_response(text=listing_html)
+        return _make_mock_response(text=_VALID_ARTICLE_HTML)
+
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.side_effect = mock_get
+    scraper._session = mock_session
+
+    docs = list(scraper.yield_documents())
+
+    assert docs == []
+    assert article_url not in call_tracker, (
+        f"Article URL was fetched despite article_id is_visited=True: {call_tracker}"
+    )
+
+
+def test_yield_documents_does_not_mark_visited_before_indexing():
+    """Visited state is updated by BulkIndexer only after Elasticsearch succeeds."""
+    mock_state = MagicMock()
+    mock_state.is_visited.return_value = False
+    scraper = _make_scraper(state=mock_state)
+
+    listing_html = (
+        "<html><body>"
+        "<a class='article-link' href='/media/foo'>Foo Article</a>"
+        "</body></html>"
+    )
+
+    def mock_get(url, **kwargs):
+        if "all-articles" in url:
+            return _make_mock_response(text=listing_html)
+        return _make_mock_response(text=_VALID_ARTICLE_HTML)
+
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.side_effect = mock_get
+    scraper._session = mock_session
+
+    docs = list(scraper.yield_documents())
+
+    assert len(docs) == 1
+    mock_state.mark_visited.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Security/etiquette: User-Agent
 # ---------------------------------------------------------------------------
@@ -399,6 +462,34 @@ def test_doc_has_body_html_field():
     assert doc is not None
     assert "body_html" in doc, f"Expected 'body_html' key in doc; got keys: {set(doc.keys())}"
     assert "<" in doc["body_html"], "body_html should contain HTML tags"
+
+
+def test_doc_has_hero_image_url_from_article_image():
+    """Blog docs use the first relevant article image as hero_image_url."""
+    scraper = _make_scraper()
+    mock_session = MagicMock()
+    mock_session.headers = {}
+    mock_session.get.return_value = _make_mock_response(
+        text="""
+        <html>
+          <body>
+            <article class="post">
+              <h1>Ferrari history</h1>
+              <img src="/media/images/ferrari-hero.jpg" width="1200" height="800">
+              <p>Ferrari built many memorable cars with long and meaningful histories.</p>
+              <p>This article has enough body text to pass the minimum length guard for NitroFind scraping.</p>
+            </article>
+          </body>
+        </html>
+        """
+    )
+    scraper._session = mock_session
+    target = _SAMPLE_CONFIG["blogs"]["targets"][0]
+
+    doc = scraper._fetch_article("https://www.hagerty.com/media/ferrari-history", target)
+
+    assert doc is not None
+    assert doc["hero_image_url"] == "https://www.hagerty.com/media/images/ferrari-hero.jpg"
 
 
 def test_breadcrumb_excluded_from_body():

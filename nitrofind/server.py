@@ -8,16 +8,22 @@ Exports:
   start_es_background — Spawn daemon thread that starts ES subprocess and polls cluster health
   index               — GET / route: serves rendered index.html search UI
   api_status          — GET /api/status route: 503 warmup guard / 200 health JSON
-  api_search          — GET /api/search route: ranked full-text search with optional filters and pagination
-  _result_to_api_dict — Serialize ArticleResult to the per-item wire format (7 keys, no took_ms)
+  api_search             — GET /api/search route: ranked full-text search with optional filters and pagination
+  api_article_detail     — GET /api/articles/<article_id> route: full article payload for clicked results
+  _result_to_api_dict    — Serialize ArticleResult to the lightweight per-item wire format (no took_ms)
+  _article_detail_to_api_dict — Serialize ArticleResult to the full detail wire format
 
 Requirement coverage:
   SRVR-02: Flask listens on localhost:5000; PORT overridable via env var
   SRVR-03: HTTP 503 {"status": "starting"} during ES warmup
-  API-01:  GET /api/search returns JSON wrapper {results, total, took_ms, page} with per-item keys title, url, source_domain, excerpt, body, body_html, score
-  API-02:  GET /api/search accepts manufacturer, era_bucket, body_style filter params
+  API-01:  GET /api/search returns JSON wrapper {results, total, took_ms, page} with lightweight
+           per-item keys article_id, title, url, source_domain, excerpt, score
+  API-02:  GET /api/search accepts manufacturer, era_bucket, body_style, year_from, year_to,
+           country filter params
   API-03:  GET /api/status returns JSON with es_health, doc_count, index_size_bytes
   API-04:  GET / serves rendered index.html search UI
+  API-05:  GET /api/articles/<article_id> returns the full article payload (body, body_html,
+           hero_image_url, specs, ...) fetched only after a result is clicked
 
 Security mitigations:
   T-06-05: 503 warmup guard checks state["ready"] before any ES client call
@@ -32,11 +38,15 @@ import threading
 import time
 
 from flask import Flask, jsonify, render_template, request
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, NotFoundError
 
 from nitrofind.es_manager import ES_URL, shutdown_es  # noqa: F401 (shutdown_es re-exported for main.py)
 from nitrofind.search.models import ArticleResult
-from nitrofind.search.query_builder import build_search_body, build_filter_clauses
+from nitrofind.search.query_builder import (
+    DETAIL_SOURCE_FIELDS,
+    build_search_body,
+    build_filter_clauses,
+)
 
 # ---------------------------------------------------------------------------
 # Module-level singletons
@@ -98,30 +108,54 @@ def api_status():
 
 
 def _result_to_api_dict(result: ArticleResult) -> dict:
-    """Serialize one ArticleResult to the API-01 wire format.
+    """Serialize one lightweight search result for the result list.
 
     Excerpt selection: use highlight_body[0] if ES returned a highlighted
     fragment (contains <b> tags), otherwise fall back to plain _source excerpt.
     This satisfies API-01's requirement that the excerpt contain ES highlight
     tags when a match exists.
 
-    Note: took_ms is no longer per-item — it now lives on the wrapper response
-    (PAGE-02). The wrapper response has keys: results, total, took_ms, page.
+    Note: took_ms is not per-item — it lives on the wrapper response (PAGE-02).
+    The wrapper response has keys: results, total, took_ms, page.
 
     Args:
         result:   ArticleResult instance from ArticleResult.from_es_hit().
 
     Returns:
-        dict with keys: title, url, source_domain, excerpt, body, body_html, score.
+        dict with keys: article_id, title, url, source_domain, excerpt, score.
     """
     excerpt = result.highlight_body[0] if result.highlight_body else result.excerpt
     return {
+        "article_id": result.article_id,
         "title": result.title,
         "url": result.url,
         "source_domain": result.source_domain,
         "excerpt": excerpt,
+        "score": result.score,
+    }
+
+
+def _article_detail_to_api_dict(result: ArticleResult) -> dict:
+    """Serialize one full article detail payload for the article view."""
+    return {
+        "article_id": result.article_id,
+        "title": result.title,
+        "url": result.url,
+        "source_domain": result.source_domain,
+        "excerpt": result.excerpt,
         "body": result.body,
-        "body_html": result.body_html,   # Phase 9: HTML for article view rendering
+        "body_html": result.body_html,
+        "hero_image_url": result.hero_image_url,
+        "published_at": result.published_at,
+        "word_count": result.word_count,
+        "has_infobox": result.has_infobox,
+        "manufacturer": result.manufacturer,
+        "production_start": result.production_start,
+        "production_end": result.production_end,
+        "era_bucket": result.era_bucket,
+        "body_style": result.body_style,
+        "country_of_origin": result.country_of_origin,
+        "specs": result.specs,
         "score": result.score,
     }
 
@@ -151,9 +185,10 @@ def api_search():
     """GET /api/search — ranked full-text search with optional filters and pagination.
 
     Requirement coverage:
-      API-01: returns JSON wrapper {results, total, took_ms, page} with per-item keys
-              title, url, source_domain, excerpt, body, body_html, score
-      API-02: accepts manufacturer, era_bucket, body_style filter params
+      API-01: returns JSON wrapper {results, total, took_ms, page} with lightweight
+              per-item keys article_id, title, url, source_domain, excerpt, score
+      API-02: accepts manufacturer, era_bucket, body_style, year_from, year_to, country
+              filter params
       SRVR-03: returns 503 while state["ready"] is False
       PAGE-01: page param maps to from_ offset (from_ = (page-1) * PAGE_SIZE)
       PAGE-02: total key exposes hits.total.value for pagination UI
@@ -217,6 +252,28 @@ def api_search():
         "took_ms": took_ms,
         "page": page,
     })
+
+
+@app.route("/api/articles/<article_id>")
+def api_article_detail(article_id: str):
+    """GET /api/articles/<article_id> - full article payload for clicked results."""
+    if not state["ready"]:
+        return {"status": "starting"}, 503
+
+    try:
+        resp = state["es_client"].get(
+            index="car_articles",
+            id=article_id,
+            source=DETAIL_SOURCE_FIELDS,
+        )
+    except NotFoundError:
+        return {"error": "article_not_found"}, 404
+    except Exception as exc:
+        logger.warning("Article detail error: %s: %s", type(exc).__name__, exc)
+        return {"error": "article_detail_failed"}, 500
+
+    result = ArticleResult.from_es_hit(resp)
+    return jsonify(_article_detail_to_api_dict(result))
 
 
 # ---------------------------------------------------------------------------

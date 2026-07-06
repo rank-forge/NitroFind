@@ -75,12 +75,34 @@
     </div>
   </div>
 
-  <!-- Article view: full-page article with back button -->
+  <!-- Article view: Archive dossier -->
   <div class="article-view">
-    <button id="back-btn" type="button">&#8592; Back</button>
-    <h2 id="article-title"></h2>
-    <p id="article-source"></p>
-    <div id="article-body"></div>
+    <header class="dossier-topbar">
+      <button id="back-btn" type="button" aria-label="Back to results">&#8592; Back</button>
+      <span id="article-source"></span>
+    </header>
+
+    <section class="dossier-hero">
+      <figure class="dossier-photo">
+        <div id="article-photo-placeholder" class="dossier-photo-placeholder"></div>
+        <img id="article-photo" alt="">
+      </figure>
+
+      <div class="dossier-identity">
+        <p id="article-era" class="dossier-kicker"></p>
+        <h2 id="article-title"></h2>
+        <p id="article-summary" class="dossier-summary"></p>
+        <dl id="article-specs" class="dossier-specs"></dl>
+      </div>
+    </section>
+
+    <article id="article-body" class="dossier-body"></article>
+  </div>
+
+  <div id="transition-overlay" class="transition-overlay" aria-hidden="true">
+    <video id="speedometer-video" preload="auto" playsinline>
+      <source src="/static/media/videoVeloIntro.mp4" type="video/mp4">
+    </video>
   </div>
 
   <script src="/static/js/app.js"></script>

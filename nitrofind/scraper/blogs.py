@@ -60,6 +60,19 @@ _BLOG_NOISE_SELECTORS = (
 )
 
 
+def _first_article_image_url(container, page_url: str) -> str:
+    """Return first relevant article image URL, normalized against page_url."""
+    for img in container.select("img[src]"):
+        src = str(img.get("src", "")).strip()
+        lowered = src.lower()
+        if not src or lowered.startswith("data:"):
+            continue
+        if any(part in lowered for part in (".svg", "logo", "icon")):
+            continue
+        return urljoin(page_url, src)
+    return ""
+
+
 class BlogScraper:
     """Automotive blog scraper that yields document dicts for the ES car_articles index.
 
@@ -133,7 +146,8 @@ class BlogScraper:
 
             for url in article_urls:
                 # D-06: skip already-indexed URLs before fetching
-                if self._state.is_visited(url):
+                article_id = self._url_slug(url)
+                if self._state.is_visited(article_id) or self._state.is_visited(url):
                     logger.debug("Skipping already-visited URL: %s", url)
                     continue
 
@@ -141,8 +155,6 @@ class BlogScraper:
                 if doc is None:
                     continue
 
-                # Record state BEFORE yield so state is durable if caller crashes (CR-01)
-                self._state.mark_visited(url, target["name"])
                 yield doc
                 yielded_any = True
                 time.sleep(self._rate_limit)
@@ -307,6 +319,7 @@ class BlogScraper:
 
         # BUG-01 fix: capture HTML BEFORE get_text() strips structure (Pitfall 3 / Pattern 5)
         body_html = str(container)          # full HTML with <table> preserved
+        hero_image_url = _first_article_image_url(container, url)
 
         # L-05: plain text only — get_text removes all tags, regex collapses whitespace
         raw_text = container.get_text(separator=" ", strip=True)
@@ -336,6 +349,7 @@ class BlogScraper:
             "scraped_at": datetime.now(timezone.utc).isoformat(),
             "body": body_text,
             "body_html": body_html,    # BUG-01: stored HTML with <table> preserved (index:false)
+            "hero_image_url": hero_image_url,
             "excerpt": make_excerpt(body_text),
             "word_count": len(body_text.split()),
             "has_infobox": False,

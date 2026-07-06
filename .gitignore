@@ -7,3 +7,10 @@ build/
 dist/
 *.egg-info/
 data/
+
+# Local tooling artifacts — not part of the shipped project
+.superpowers/
+docs/superpowers/
+
+# Raw source clip — only the processed clip in static/media/ is used by the app
+/videoVelo.mp4

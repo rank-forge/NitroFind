@@ -14,7 +14,7 @@ Requirement coverage:
 """
 
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -126,6 +126,89 @@ def test_root_uses_template(client_not_ready):
     assert resp.status_code == 200
     assert resp.content_type.startswith("text/html")
     assert b'data-state="home"' in resp.data
+
+
+# ---------------------------------------------------------------------------
+# API-05: /api/articles/<article_id> full detail payload
+# ---------------------------------------------------------------------------
+
+
+def test_article_detail_503_while_not_ready(client_not_ready, monkeypatch):
+    """GET /api/articles/<article_id> returns 503 before ES is ready."""
+    from nitrofind import server
+    mock_es = MagicMock()
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+
+    resp = client_not_ready.get("/api/articles/12345")
+
+    assert resp.status_code == 503
+    assert resp.get_json() == {"status": "starting"}
+    mock_es.get.assert_not_called()
+
+
+def test_article_detail_returns_full_article(monkeypatch):
+    """GET /api/articles/<article_id> returns full detail payload for a clicked result."""
+    from nitrofind import server
+
+    mock_es = MagicMock()
+    mock_es.get.return_value = {
+        "_score": 1.0,
+        "_source": {
+            "article_id": "12345",
+            "title": "Ford Mustang",
+            "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
+            "source_domain": "en.wikipedia.org",
+            "excerpt": "The Ford Mustang is a pony car.",
+            "body": "Full article text.",
+            "body_html": "<div><p>Full article text.</p></div>",
+            "hero_image_url": "https://upload.wikimedia.org/mustang.jpg",
+            "manufacturer": "Ford",
+            "production_start": 1964,
+            "production_end": 2023,
+            "era_bucket": "1960s",
+            "body_style": "Coupe",
+            "country_of_origin": "United States",
+            "specs": {"engine": "V8"},
+        },
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/articles/12345")
+
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["article_id"] == "12345"
+    assert data["title"] == "Ford Mustang"
+    assert data["body_html"] == "<div><p>Full article text.</p></div>"
+    assert data["hero_image_url"] == "https://upload.wikimedia.org/mustang.jpg"
+    assert data["specs"] == {"engine": "V8"}
+    mock_es.get.assert_called_once()
+    call_kwargs = mock_es.get.call_args.kwargs
+    assert call_kwargs["index"] == "car_articles"
+    assert call_kwargs["id"] == "12345"
+
+
+def test_article_detail_404_when_missing(monkeypatch):
+    """GET /api/articles/<article_id> returns 404 when ES cannot find the document."""
+    from elasticsearch import NotFoundError
+    from nitrofind import server
+
+    mock_es = MagicMock()
+    mock_es.get.side_effect = NotFoundError(
+        message="not found",
+        meta=MagicMock(status=404),
+        body={"found": False},
+    )
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/articles/missing")
+
+    assert resp.status_code == 404
+    assert resp.get_json() == {"error": "article_not_found"}
 
 
 # ---------------------------------------------------------------------------

@@ -57,10 +57,11 @@ def test_article_result_all_fields():
     """ArticleResult has exactly the expected set of fields."""
     expected_fields = {
         "title", "url", "source_domain", "score",
-        "excerpt", "published_at", "word_count", "has_infobox",
+        "article_id", "excerpt", "published_at", "word_count", "has_infobox",
         "manufacturer", "era_bucket", "body_style",
-        "highlight_title", "highlight_body",
+        "hero_image_url", "highlight_title", "highlight_body",
         "body", "body_html",
+        "production_start", "production_end", "country_of_origin", "specs",
     }
     import dataclasses
     actual_fields = {f.name for f in dataclasses.fields(ArticleResult)}
@@ -169,6 +170,32 @@ def test_body_html_field_default():
     assert r.body_html == ""
 
 
+def test_article_result_identity_and_hero_defaults():
+    """ArticleResult defaults optional detail fields safely."""
+    r = ArticleResult(title="x", url="y", source_domain="z", score=1.0)
+    assert r.article_id == ""
+    assert r.hero_image_url == ""
+
+
+def test_article_result_identity_and_hero_from_es_hit():
+    """from_es_hit populates article_id and hero_image_url from _source."""
+    hit = {
+        "_score": 1.0,
+        "_source": {
+            "article_id": "12345",
+            "title": "Ferrari 308",
+            "url": "https://en.wikipedia.org/wiki/Ferrari_308",
+            "source_domain": "en.wikipedia.org",
+            "hero_image_url": "https://upload.wikimedia.org/ferrari-308.jpg",
+        },
+    }
+
+    r = ArticleResult.from_es_hit(hit)
+
+    assert r.article_id == "12345"
+    assert r.hero_image_url == "https://upload.wikimedia.org/ferrari-308.jpg"
+
+
 def test_article_result_body_html_from_es_hit():
     """from_es_hit populates body_html from _source and falls back to empty string when missing."""
     hit_with_body_html = {
@@ -215,3 +242,26 @@ def test_article_result_body_from_es_hit():
     }
     r2 = ArticleResult.from_es_hit(hit_no_body)
     assert r2.body == ""
+
+
+def test_article_result_detail_fields_from_es_hit():
+    """from_es_hit populates detail-only metadata for the article endpoint."""
+    hit = {
+        "_score": 1.0,
+        "_source": {
+            "title": "Ford Mustang",
+            "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
+            "source_domain": "en.wikipedia.org",
+            "production_start": 1964,
+            "production_end": 2023,
+            "country_of_origin": "United States",
+            "specs": {"engine": "V8"},
+        },
+    }
+
+    r = ArticleResult.from_es_hit(hit)
+
+    assert r.production_start == 1964
+    assert r.production_end == 2023
+    assert r.country_of_origin == "United States"
+    assert r.specs == {"engine": "V8"}
