@@ -81,6 +81,10 @@ class ArticleResult:
     manufacturer: str | None = None
     era_bucket: str | None = None
     body_style: str | None = None
+    production_start: int | None = None
+    production_end: int | None = None
+    country_of_origin: str | None = None
+    specs: dict = field(default_factory=dict)
 
     # Highlight fragments — must use field(default_factory=list) to avoid shared mutable default
     highlight_title: list[str] = field(default_factory=list)
@@ -125,6 +129,10 @@ class ArticleResult:
             manufacturer=src.get("manufacturer"),
             era_bucket=src.get("era_bucket"),
             body_style=src.get("body_style"),
+            production_start=src.get("production_start"),
+            production_end=src.get("production_end"),
+            country_of_origin=src.get("country_of_origin"),
+            specs=src.get("specs") if isinstance(src.get("specs"), dict) else {},
             highlight_title=highlights.get("title", []),
             highlight_body=highlights.get("body", []),
         )

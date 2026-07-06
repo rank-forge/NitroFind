@@ -32,11 +32,15 @@ import threading
 import time
 
 from flask import Flask, jsonify, render_template, request
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, NotFoundError
 
 from nitrofind.es_manager import ES_URL, shutdown_es  # noqa: F401 (shutdown_es re-exported for main.py)
 from nitrofind.search.models import ArticleResult
-from nitrofind.search.query_builder import build_search_body, build_filter_clauses
+from nitrofind.search.query_builder import (
+    DETAIL_SOURCE_FIELDS,
+    build_search_body,
+    build_filter_clauses,
+)
 
 # ---------------------------------------------------------------------------
 # Module-level singletons
@@ -93,7 +97,7 @@ def api_status():
 
 
 def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
-    """Serialize one ArticleResult to the API-01 wire format.
+    """Serialize one lightweight search result for the result list.
 
     Excerpt selection: use highlight_body[0] if ES returned a highlighted
     fragment (contains <b> tags), otherwise fall back to plain _source excerpt.
@@ -106,18 +110,42 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
                   in a single response (Pitfall 5 resolution).
 
     Returns:
-        dict with keys: title, url, source_domain, excerpt, score, took_ms.
+        dict with keys: article_id, title, url, source_domain, excerpt, score, took_ms.
     """
     excerpt = result.highlight_body[0] if result.highlight_body else result.excerpt
     return {
+        "article_id": result.article_id,
         "title": result.title,
         "url": result.url,
         "source_domain": result.source_domain,
         "excerpt": excerpt,
-        "body": result.body,
-        "body_html": result.body_html,   # Phase 9: HTML for article view rendering
         "score": result.score,
         "took_ms": took_ms,
+    }
+
+
+def _article_detail_to_api_dict(result: ArticleResult) -> dict:
+    """Serialize one full article detail payload for the article view."""
+    return {
+        "article_id": result.article_id,
+        "title": result.title,
+        "url": result.url,
+        "source_domain": result.source_domain,
+        "excerpt": result.excerpt,
+        "body": result.body,
+        "body_html": result.body_html,
+        "hero_image_url": result.hero_image_url,
+        "published_at": result.published_at,
+        "word_count": result.word_count,
+        "has_infobox": result.has_infobox,
+        "manufacturer": result.manufacturer,
+        "production_start": result.production_start,
+        "production_end": result.production_end,
+        "era_bucket": result.era_bucket,
+        "body_style": result.body_style,
+        "country_of_origin": result.country_of_origin,
+        "specs": result.specs,
+        "score": result.score,
     }
 
 
@@ -168,6 +196,28 @@ def api_search():
     took_ms = resp.get("took", 0)
     results = [ArticleResult.from_es_hit(hit) for hit in resp["hits"]["hits"]]
     return jsonify([_result_to_api_dict(r, took_ms) for r in results])
+
+
+@app.route("/api/articles/<article_id>")
+def api_article_detail(article_id: str):
+    """GET /api/articles/<article_id> - full article payload for clicked results."""
+    if not state["ready"]:
+        return {"status": "starting"}, 503
+
+    try:
+        resp = state["es_client"].get(
+            index="car_articles",
+            id=article_id,
+            source=DETAIL_SOURCE_FIELDS,
+        )
+    except NotFoundError:
+        return {"error": "article_not_found"}, 404
+    except Exception as exc:
+        logger.warning("Article detail error: %s: %s", type(exc).__name__, exc)
+        return {"error": "article_detail_failed", "detail": type(exc).__name__}, 500
+
+    result = ArticleResult.from_es_hit(resp)
+    return jsonify(_article_detail_to_api_dict(result))
 
 
 # ---------------------------------------------------------------------------

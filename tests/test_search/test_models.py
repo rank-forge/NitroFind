@@ -61,6 +61,7 @@ def test_article_result_all_fields():
         "manufacturer", "era_bucket", "body_style",
         "hero_image_url", "highlight_title", "highlight_body",
         "body", "body_html",
+        "production_start", "production_end", "country_of_origin", "specs",
     }
     import dataclasses
     actual_fields = {f.name for f in dataclasses.fields(ArticleResult)}
@@ -241,3 +242,26 @@ def test_article_result_body_from_es_hit():
     }
     r2 = ArticleResult.from_es_hit(hit_no_body)
     assert r2.body == ""
+
+
+def test_article_result_detail_fields_from_es_hit():
+    """from_es_hit populates detail-only metadata for the article endpoint."""
+    hit = {
+        "_score": 1.0,
+        "_source": {
+            "title": "Ford Mustang",
+            "url": "https://en.wikipedia.org/wiki/Ford_Mustang",
+            "source_domain": "en.wikipedia.org",
+            "production_start": 1964,
+            "production_end": 2023,
+            "country_of_origin": "United States",
+            "specs": {"engine": "V8"},
+        },
+    }
+
+    r = ArticleResult.from_es_hit(hit)
+
+    assert r.production_start == 1964
+    assert r.production_end == 2023
+    assert r.country_of_origin == "United States"
+    assert r.specs == {"engine": "V8"}
