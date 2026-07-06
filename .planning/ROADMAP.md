@@ -137,7 +137,7 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 
 **Wave 0**
 
-  - [ ] 13-01-PLAN.md — Failing-test scaffold (3 RED template-structure tests: history-list, theme-toggle, FOUC script)
+  - [x] 13-01-PLAN.md — Failing-test scaffold (3 RED template-structure tests: history-list, theme-toggle, FOUC script)
 
 **Wave 1** *(blocked on Wave 0)*
 
@@ -165,4 +165,4 @@ Full details: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 | 10. Search Quality & Sort | v1.2 | 2/2 | Complete    | 2026-06-26 |
 | 11. Extended Filtering | v1.2 | 3/3 | Complete   | 2026-07-03 |
 | 12. Pagination | v1.2 | 3/3 | Complete    | 2026-07-05 |
-| 13. History & Theme | v1.2 | 0/3 | Planned | - |
+| 13. History & Theme | v1.2 | 1/3 | In Progress|  |
