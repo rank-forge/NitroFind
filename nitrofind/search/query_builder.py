@@ -104,14 +104,35 @@ def build_function_score_query(
         dict with single top-level key "function_score" containing the full
         function_score query structure ready for use as an ES query parameter.
     """
-    # Base query: multi_match on title (boosted 3x) and body
-    base_query = {
-        "multi_match": {
-            "query": query_text,
-            "fields": ["title^3", "body"],
-            "type": "best_fields",
+    # Phrase detection: startswith+endswith " and len > 2 (Pitfall 3 guard)
+    _is_phrase = (
+        query_text.startswith('"')
+        and query_text.endswith('"')
+        and len(query_text) > 2
+    )
+
+    if _is_phrase:
+        # Phrase path: strip quotes; NO fuzziness (ES returns 400 if fuzziness
+        # is present with type:phrase — Pitfall 1 in RESEARCH.md)
+        _phrase_text = query_text[1:-1].strip()
+        base_query = {
+            "multi_match": {
+                "query": _phrase_text,
+                "fields": ["title^3", "body"],
+                "type": "phrase",
+            }
         }
-    }
+    else:
+        # Default path: fuzzy best_fields (QURY-01)
+        base_query = {
+            "multi_match": {
+                "query": query_text,
+                "fields": ["title^3", "body"],
+                "type": "best_fields",
+                "fuzziness": "AUTO",
+                "prefix_length": 1,
+            }
+        }
 
     return {
         "function_score": {
@@ -170,6 +191,9 @@ def build_filter_clauses(
     manufacturer: str | None = None,
     era_bucket: str | None = None,
     body_style: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+    country: str | None = None,
 ) -> list[dict]:
     """Return a list of term filter dicts for the bool.filter context.
 
@@ -184,9 +208,12 @@ def build_filter_clauses(
         manufacturer: Exact manufacturer keyword to filter on, or None to skip.
         era_bucket:   Exact era_bucket keyword (e.g. "1960s"), or None to skip.
         body_style:   Exact body_style keyword (e.g. "coupe"), or None to skip.
+        year_from:    Lower bound of production year range (inclusive), or None to skip.
+        year_to:      Upper bound of production year range (inclusive), or None to skip.
+        country:      Exact country_of_origin keyword (e.g. "Germany"), or None to skip.
 
     Returns:
-        List of ES term filter dicts. Empty list when all args are None.
+        List of ES term/range filter dicts. Empty list when all args are None/falsy.
     """
     filters = []
     if manufacturer:
@@ -195,7 +222,36 @@ def build_filter_clauses(
         filters.append({"term": {"era_bucket": era_bucket}})
     if body_style:
         filters.append({"term": {"body_style": body_style}})
+    # FILT-01: interval overlap — article production period intersects [year_from, year_to]
+    # Two clauses required: production_end >= year_from AND production_start <= year_to
+    # Use `is not None` (not truthiness) so that integer 0 is a valid year.
+    if year_from is not None:
+        filters.append({"range": {"production_end": {"gte": year_from}}})
+    if year_to is not None:
+        filters.append({"range": {"production_start": {"lte": year_to}}})
+    # FILT-02: exact country of origin match (keyword field — case-sensitive)
+    if country:
+        filters.append({"term": {"country_of_origin": country}})
     return filters
+
+
+def _build_sort_clauses(sort: str | None) -> list[dict] | None:
+    """Return ES sort array for the given sort mode, or None for relevance.
+
+    None signals the caller to omit the sort kwarg entirely, which lets ES
+    default to _score desc (relevance ranking).
+
+    Args:
+        sort: "date" | "size" | "relevance" | None
+
+    Returns:
+        list with one sort dict for "date" or "size"; None for anything else.
+    """
+    if sort == "date":
+        return [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
+    if sort == "size":
+        return [{"word_count": {"order": "desc"}}]
+    return None  # "relevance" or unknown → ES default _score desc
 
 
 def build_search_body(
@@ -203,6 +259,7 @@ def build_search_body(
     filters: list[dict] | None = None,
     size: int = 20,
     from_: int = 0,
+    sort: str | None = None,
     recency_weight: float = DEFAULT_RECENCY_WEIGHT,
     length_weight: float = DEFAULT_LENGTH_WEIGHT,
     infobox_weight: float = DEFAULT_INFOBOX_WEIGHT,
@@ -222,6 +279,8 @@ def build_search_body(
         filters:                 List of term filter dicts from build_filter_clauses, or None/[].
         size:                    Number of results to return. Clamped to MAX_RESULT_SIZE (100).
         from_:                   Offset for pagination (0-based).
+        sort:                    Sort mode: "date" | "size" | "relevance" | None.
+                                 "relevance" and None omit the sort key (ES default _score desc).
         recency_weight:          Weight for Gaussian decay function (forwarded to function_score).
         length_weight:           Weight for field_value_factor length signal.
         infobox_weight:          Weight for infobox boolean boost.
@@ -229,7 +288,7 @@ def build_search_body(
 
     Returns:
         dict ready to be passed to client.search() as keyword arguments.
-        Keys: "query", "highlight", "size", "from", "_source".
+        Keys: "query", "highlight", "size", "from", "_source" (+ "sort" when applicable).
     """
     fs_query = build_function_score_query(
         query_text,
@@ -250,7 +309,7 @@ def build_search_body(
             }
         }
 
-    return {
+    result = {
         "query": fs_query,
         "highlight": {
             "fields": {
@@ -272,3 +331,7 @@ def build_search_body(
         "from": max(0, from_),                        # clamp to non-negative
         "_source": list(SEARCH_SOURCE_FIELDS),
     }
+    sort_clauses = _build_sort_clauses(sort)
+    if sort_clauses is not None:
+        result["sort"] = sort_clauses
+    return result

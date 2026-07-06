@@ -375,3 +375,157 @@ def test_custom_weights_propagate():
     assert fns[1]["weight"] == 0.1
     assert fns[2]["weight"] == 0.5
     assert fns[3]["weight"] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# QURY-01: Fuzzy routing — fuzziness on default path, absent on phrase path
+# ---------------------------------------------------------------------------
+
+
+def test_fuzzy_path_has_fuzziness():
+    """Non-quoted query multi_match contains fuzziness:AUTO and prefix_length:1. [QURY-01]"""
+    q = build_function_score_query("Ferari")
+    base = q["function_score"]["query"]
+    mm = base["multi_match"]
+    assert mm["type"] == "best_fields"
+    assert mm["fuzziness"] == "AUTO"
+    assert mm["prefix_length"] == 1
+
+
+def test_phrase_path_no_fuzziness():
+    """Quoted query phrase path does NOT contain fuzziness key. [QURY-01 anti-pattern]"""
+    q = build_function_score_query('"V8 engine"')
+    base = q["function_score"]["query"]
+    mm = base["multi_match"]
+    assert "fuzziness" not in mm
+
+
+# ---------------------------------------------------------------------------
+# QURY-02: Phrase routing — quoted input goes to type:phrase
+# ---------------------------------------------------------------------------
+
+
+def test_phrase_query_routing():
+    """Quoted input emits multi_match type:phrase with stripped text. [QURY-02]"""
+    q = build_function_score_query('"V8 engine"')
+    base = q["function_score"]["query"]
+    mm = base["multi_match"]
+    assert mm["type"] == "phrase"
+    assert mm["query"] == "V8 engine"   # quotes stripped
+
+
+def test_non_quoted_not_phrase():
+    """Non-quoted input does NOT emit type:phrase. [QURY-02]"""
+    q = build_function_score_query("V8 engine")
+    base = q["function_score"]["query"]
+    assert base["multi_match"]["type"] == "best_fields"
+
+
+def test_empty_quotes_not_phrase():
+    """'\"\"' (two chars) does not trigger phrase path — len > 2 guard. [QURY-02]"""
+    q = build_function_score_query('""')
+    base = q["function_score"]["query"]
+    assert base["multi_match"]["type"] == "best_fields"
+
+
+# ---------------------------------------------------------------------------
+# SORT-02: sort parameter — build_search_body sort key presence/absence
+# ---------------------------------------------------------------------------
+
+
+def test_build_search_body_sort_date():
+    """build_search_body(sort='date') includes published_at desc sort. [SORT-02]"""
+    body = build_search_body("Ferrari", sort="date")
+    assert "sort" in body
+    assert body["sort"] == [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
+
+
+def test_build_search_body_sort_size():
+    """build_search_body(sort='size') includes word_count desc sort. [SORT-02]"""
+    body = build_search_body("Ferrari", sort="size")
+    assert "sort" in body
+    assert body["sort"] == [{"word_count": {"order": "desc"}}]
+
+
+def test_build_search_body_sort_relevance_no_key():
+    """build_search_body(sort='relevance') omits 'sort' key entirely. [SORT-02]"""
+    body = build_search_body("Ferrari", sort="relevance")
+    assert "sort" not in body
+
+
+def test_build_search_body_no_sort_no_key():
+    """build_search_body() without sort param omits 'sort' key. [SORT-02]"""
+    body = build_search_body("Ferrari")
+    assert "sort" not in body
+
+
+# ---------------------------------------------------------------------------
+# FILT-01: year range overlap
+# ---------------------------------------------------------------------------
+
+
+def test_build_filter_clauses_year_from():
+    """build_filter_clauses(year_from=1960) emits range production_end >= 1960. [FILT-01]"""
+    result = build_filter_clauses(year_from=1960)
+    assert result == [{"range": {"production_end": {"gte": 1960}}}]
+
+
+def test_build_filter_clauses_year_to():
+    """build_filter_clauses(year_to=1975) emits range production_start <= 1975. [FILT-01]"""
+    result = build_filter_clauses(year_to=1975)
+    assert result == [{"range": {"production_start": {"lte": 1975}}}]
+
+
+def test_build_filter_clauses_year_both_bounds():
+    """Both year bounds together produce two range clauses. [FILT-01]"""
+    result = build_filter_clauses(year_from=1960, year_to=1975)
+    assert len(result) == 2
+    assert {"range": {"production_end": {"gte": 1960}}} in result
+    assert {"range": {"production_start": {"lte": 1975}}} in result
+
+
+def test_build_filter_clauses_year_none_produces_no_clause():
+    """year_from=None and year_to=None produce no extra clauses. [FILT-01]"""
+    result = build_filter_clauses(year_from=None, year_to=None)
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# FILT-02: country of origin
+# ---------------------------------------------------------------------------
+
+
+def test_build_filter_clauses_country():
+    """build_filter_clauses(country='Germany') emits term country_of_origin=Germany. [FILT-02]"""
+    result = build_filter_clauses(country="Germany")
+    assert result == [{"term": {"country_of_origin": "Germany"}}]
+
+
+def test_build_filter_clauses_country_empty_string_ignored():
+    """Empty string country produces no filter clause. [FILT-02]"""
+    result = build_filter_clauses(country="")
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# FILT-03: all six params combined
+# ---------------------------------------------------------------------------
+
+
+def test_build_filter_clauses_all_filters():
+    """All six filter params combine into six separate clauses. [FILT-03]"""
+    result = build_filter_clauses(
+        manufacturer="BMW",
+        era_bucket="1960s",
+        body_style="coupe",
+        year_from=1960,
+        year_to=1975,
+        country="Germany",
+    )
+    assert len(result) == 6
+    assert {"term": {"manufacturer": "BMW"}} in result
+    assert {"term": {"era_bucket": "1960s"}} in result
+    assert {"term": {"body_style": "coupe"}} in result
+    assert {"range": {"production_end": {"gte": 1960}}} in result
+    assert {"range": {"production_start": {"lte": 1975}}} in result
+    assert {"term": {"country_of_origin": "Germany"}} in result

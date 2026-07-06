@@ -25,7 +25,16 @@
 let uiState = "home";        // "home" | "results" | "article"
 let selectedIndex = -1;      // keyboard nav cursor
 let currentQuery = "";
-let currentFilters = { manufacturer: "", era_bucket: "", body_style: "" };
+let currentFilters = {
+  manufacturer: "",
+  era_bucket:   "",
+  body_style:   "",
+  year_from:    "",   // FILT-01
+  year_to:      "",   // FILT-01
+  country:      "",   // FILT-02
+};
+let currentSort = "relevance";   // "relevance" | "date" | "size"
+let currentPage = 1;
 let currentResults = [];
 let debounceTimer = null;
 let abortController = null;
@@ -33,6 +42,8 @@ let abortController = null;
 const DEBOUNCE_MS = 300;
 const TRANSITION_MIN_MS = 750;
 const TRANSITION_MAX_MS = 1250;
+const HISTORY_KEY = 'nitrofind-history';
+const HISTORY_MAX = 10;
 
 // ---------------------------------------------------------------------------
 // Cached DOM references (queried once at load — never inside render loops)
@@ -46,7 +57,13 @@ const statsLine       = document.getElementById("stats-line");
 const filterMfr       = document.getElementById("filter-manufacturer");
 const filterEra       = document.getElementById("filter-era");
 const filterBody      = document.getElementById("filter-body");
+const filterYearFrom  = document.getElementById("filter-year-from");
+const filterYearTo    = document.getElementById("filter-year-to");
+const filterCountry   = document.getElementById("filter-country");
 const backBtn         = document.getElementById("back-btn");
+const prevBtn         = document.getElementById("prev-btn");
+const nextBtn         = document.getElementById("next-btn");
+const sortBtns        = document.querySelectorAll(".sort-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
 const articleBody     = document.getElementById("article-body");
@@ -57,6 +74,9 @@ const articlePhotoPlaceholder = document.getElementById("article-photo-placehold
 const articleEra        = document.getElementById("article-era");
 const articleSummary    = document.getElementById("article-summary");
 const articleSpecs      = document.getElementById("article-specs");
+const historyList     = document.getElementById("history-list");
+const themeToggleBtn  = document.getElementById("theme-toggle");
+const themeToggleBtnResults = document.getElementById("theme-toggle-results");
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -78,7 +98,10 @@ function handleSearchInput(input) {
     transitionTo("home");
     return;
   }
-  debounceTimer = setTimeout(() => runSearch(q), DEBOUNCE_MS);
+  debounceTimer = setTimeout(() => {
+    currentPage = 1;
+    runSearch(q);
+  }, DEBOUNCE_MS);
 }
 
 searchInput.addEventListener("input", () => handleSearchInput(searchInput));
@@ -90,15 +113,20 @@ searchInputResults.addEventListener("input", () => handleSearchInput(searchInput
 
 async function runSearch(q) {
   currentQuery = q;
+  addToHistory(q);   // HIST-01: write after empty-string guard resolves in handleSearchInput
 
   // Cancel any in-flight request before starting a new one (Pitfall 4)
   if (abortController) abortController.abort();
   abortController = new AbortController();
 
-  const params = new URLSearchParams({ q, ...currentFilters });
+  const params = new URLSearchParams({ q, ...currentFilters, page: currentPage });
   // Strip empty filter values — prevents sending manufacturer= (Pitfall 5)
   for (const [k, v] of [...params.entries()]) {
     if (!v) params.delete(k);
+  }
+  // Append sort param only when non-default (omit for relevance = ES default _score desc)
+  if (currentSort && currentSort !== "relevance") {
+    params.set("sort", currentSort);
   }
 
   try {
@@ -106,11 +134,13 @@ async function runSearch(q) {
       signal: abortController.signal,
     });
     if (!resp.ok) return;
-    const results = await resp.json();
-    if (!Array.isArray(results)) return;
-    currentResults = results;
+    const data = await resp.json();
+    if (!data || !Array.isArray(data.results)) return;
+    currentResults = data.results;
     selectedIndex = -1;   // reset keyboard cursor on new results
-    renderResults(results);
+    renderResults(data.results);
+    renderResultCount(data.total, data.took_ms);
+    renderPagination(data.total, data.page);
     transitionTo("results");
   } catch (err) {
     if (err.name !== "AbortError") console.error("Search failed:", err);
@@ -121,18 +151,15 @@ async function runSearch(q) {
 // Result rendering (SRCH-02, UIPL-02)
 // ---------------------------------------------------------------------------
 
-function renderResultCount(results) {
-  if (results.length === 0) {
+function renderResultCount(total, tookMs) {
+  if (total === 0) {
     statsLine.textContent = "No results";
   } else {
-    const took = results[0].took_ms;
-    statsLine.textContent = `${results.length} results (${(took / 1000).toFixed(2)}s)`;
+    statsLine.textContent = `${total} results (${(tookMs / 1000).toFixed(2)}s)`;
   }
 }
 
 function renderResults(results) {
-  renderResultCount(results);
-
   resultsList.innerHTML = "";
   results.forEach((r, i) => {
     const item = document.createElement("div");
@@ -160,6 +187,12 @@ function renderResults(results) {
     item.addEventListener("click", () => openArticle(r, item));
     resultsList.appendChild(item);
   });
+}
+
+function renderPagination(total, page) {
+  const pageSize = 10;  // must match PAGE_SIZE in server.py
+  prevBtn.disabled = page <= 1;
+  nextBtn.disabled = page * pageSize >= total;
 }
 
 // ---------------------------------------------------------------------------
@@ -406,6 +439,18 @@ backBtn.addEventListener("click", () => {
   // Query and filter state are preserved in module-level vars (D-05)
 });
 
+prevBtn.addEventListener("click", () => {
+  if (currentPage > 1) {
+    currentPage -= 1;
+    runSearch(currentQuery);
+  }
+});
+
+nextBtn.addEventListener("click", () => {
+  currentPage += 1;
+  runSearch(currentQuery);
+});
+
 // ---------------------------------------------------------------------------
 // Filter handlers (SRCH-04, D-06)
 // ---------------------------------------------------------------------------
@@ -414,12 +459,28 @@ function onFilterChange() {
   currentFilters.manufacturer = filterMfr.value;
   currentFilters.era_bucket   = filterEra.value;
   currentFilters.body_style   = filterBody.value;
+  currentFilters.year_from    = filterYearFrom.value;   // FILT-01
+  currentFilters.year_to      = filterYearTo.value;     // FILT-01
+  currentFilters.country      = filterCountry.value;    // FILT-02
+  currentPage = 1;
   if (currentQuery) runSearch(currentQuery);
 }
 
 filterMfr.addEventListener("change", onFilterChange);
 filterEra.addEventListener("change", onFilterChange);
 filterBody.addEventListener("change", onFilterChange);
+filterYearFrom.addEventListener("change", onFilterChange);   // FILT-01: change not input (Pitfall 4)
+filterYearTo.addEventListener("change", onFilterChange);     // FILT-01: change not input (Pitfall 4)
+filterCountry.addEventListener("change", onFilterChange);    // FILT-02
+
+function onSortChange(newSort) {
+  currentSort = newSort;
+  currentPage = 1;
+  sortBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.sort === newSort));
+  if (currentQuery) runSearch(currentQuery);
+}
+
+sortBtns.forEach(btn => btn.addEventListener("click", () => onSortChange(btn.dataset.sort)));
 
 // ---------------------------------------------------------------------------
 // Keyboard navigation (UIPL-03, D-11)
@@ -450,10 +511,83 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     searchInput.value = "";
     searchInputResults.value = "";
-    transitionTo("home");
+    currentQuery = "";        // prevent stale re-search on filter/sort change from home state
+    currentResults = [];      // prevent stale keyboard nav after returning to home
     selectedIndex = -1;
+    transitionTo("home");
   }
 });
+
+// ---------------------------------------------------------------------------
+// Search history (HIST-01, HIST-02)
+// ---------------------------------------------------------------------------
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+
+function addToHistory(query) {
+  let history;
+  try {
+    history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (_) {
+    history = [];
+  }
+  history = history.filter(q => q !== query);
+  history.unshift(query);
+  history = history.slice(0, HISTORY_MAX);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (_) { /* degrade silently — localStorage quota or private mode */ }
+  renderHistory(history);
+}
+
+function renderHistory(history) {
+  historyList.innerHTML = '';   // empties container structure — safe, no user data here
+  history.forEach(query => {
+    const li = document.createElement('li');
+    li.className = 'history-item';
+    li.textContent = query;     // textContent — NEVER innerHTML for user-supplied strings
+    li.addEventListener('click', () => executeHistoryQuery(query));
+    historyList.appendChild(li);
+  });
+  historyList.style.display = history.length ? 'block' : 'none';
+}
+
+function executeHistoryQuery(query) {
+  searchInput.value = query;
+  searchInputResults.value = query;
+  currentPage = 1;
+  runSearch(query);   // addToHistory() inside runSearch() moves item to front automatically
+}
+
+// ---------------------------------------------------------------------------
+// Theme toggle (THME-01)
+// ---------------------------------------------------------------------------
+
+function applyThemeLabel() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const label = isDark ? 'Light' : 'Dark';
+  if (themeToggleBtn) themeToggleBtn.textContent = label;
+  if (themeToggleBtnResults) themeToggleBtnResults.textContent = label;
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme;
+  const next = (current === 'dark') ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem('nitrofind-theme', next);
+  } catch (_) { /* degrade silently */ }
+  applyThemeLabel();
+}
+
+if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
+if (themeToggleBtnResults) themeToggleBtnResults.addEventListener('click', toggleTheme);
 
 // ---------------------------------------------------------------------------
 // ES warmup polling (D-07)
@@ -461,6 +595,7 @@ document.addEventListener("keydown", (e) => {
 
 function startWarmupPolling() {
   searchInput.disabled = true;
+  searchInputResults.disabled = true;   // disable results-view input during warmup
   statusLine.textContent = "Starting up…";
   statusLine.style.opacity = "1";
 
@@ -472,6 +607,7 @@ function startWarmupPolling() {
         if (data.status === "ok") {
           clearInterval(pollId);
           searchInput.disabled = false;
+          searchInputResults.disabled = false;  // re-enable results-view input on ready
           statusLine.style.opacity = "0";  // CSS transition fades it out
           searchInput.focus();
         }
@@ -482,3 +618,7 @@ function startWarmupPolling() {
 
 // Kick off immediately on page load
 startWarmupPolling();
+
+// History & theme init
+renderHistory(loadHistory());
+applyThemeLabel();

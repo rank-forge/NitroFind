@@ -1,6 +1,6 @@
 # NitroFind
 
-NitroFind e uma ferramenta local de busca automotiva. Ela coleta artigos sobre carros, indexa o conteudo em um Elasticsearch local e entrega uma interface web em `http://127.0.0.1:5000` para pesquisa de texto completo, filtros e leitura dos artigos.
+NitroFind é uma ferramenta local de busca automotiva. Ela coleta artigos sobre carros, indexa o conteudo em um Elasticsearch local e entrega uma interface web em `http://127.0.0.1:5000` para pesquisa de texto completo, filtros e leitura dos artigos.
 
 O objetivo do projeto e simples: acesso rapido, offline no momento da busca, sem anuncios e sem ruido de SEO, a uma base local de especificacoes, historia e artigos automotivos.
 

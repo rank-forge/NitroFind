@@ -100,26 +100,29 @@ def client_not_ready(monkeypatch):
 
 
 def test_search_returns_result_array(client_with_search):
-    """GET /api/search?q=mustang returns 200 with a JSON array of length 1. [API-01]"""
+    """GET /api/search?q=mustang returns 200 with a JSON wrapper containing a 'results' list of length 1. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
     data = resp.get_json()
-    assert isinstance(data, list)
-    assert len(data) == 1
+    assert isinstance(data["results"], list)
+    assert len(data["results"]) == 1
 
 
 def test_search_result_shape(client_with_search):
-    """Each search item contains lightweight list fields only."""
+    """Each search item has exactly the lightweight expected keys (no took_ms per-item);
+    took_ms/total/page are at wrapper level. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
     data = resp.get_json()
-    item = data[0]
+    item = data["results"][0]
     assert set(item.keys()) == {
-        "article_id", "title", "url", "source_domain", "excerpt", "score", "took_ms"
+        "article_id", "title", "url", "source_domain", "excerpt", "score"
     }
     assert item["article_id"] == "12345"
     assert item["title"] == "Ford Mustang"
-    assert item["took_ms"] == 12
+    assert data["took_ms"] == 12  # from mock took=12, at wrapper level
+    assert data["total"] == 1
+    assert data["page"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +134,7 @@ def test_excerpt_uses_highlight(client_with_search):
     """When ES returns a body highlight, excerpt contains the <b>-tagged fragment. [API-01]"""
     resp = client_with_search.get("/api/search?q=mustang")
     assert resp.status_code == 200
-    item = resp.get_json()[0]
+    item = resp.get_json()["results"][0]
     assert "<b>" in item["excerpt"]
     assert item["excerpt"] == "The <b>Mustang</b> is a pony car."
 
@@ -140,7 +143,7 @@ def test_excerpt_fallback(client_no_highlight):
     """When ES returns no highlight, excerpt falls back to plain _source excerpt. [API-01]"""
     resp = client_no_highlight.get("/api/search?q=mustang")
     assert resp.status_code == 200
-    item = resp.get_json()[0]
+    item = resp.get_json()["results"][0]
     assert "<b>" not in item["excerpt"]
     assert item["excerpt"] == "The Ford Mustang is a pony car."
 
@@ -259,3 +262,272 @@ def test_search_empty_q_returns_empty(monkeypatch):
 
     # ES was never called for either request
     mock_es.search.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# SORT-02: sort param forwarding and allowlist
+# ---------------------------------------------------------------------------
+
+
+def test_sort_date_passed_to_es(monkeypatch):
+    """GET /api/search?q=mustang&sort=date passes date sort array to es_client.search. [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=mustang&sort=date")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["sort"] == [{"published_at": {"order": "desc", "missing": "_last", "unmapped_type": "date"}}]
+
+
+def test_sort_size_passed_to_es(monkeypatch):
+    """GET /api/search?q=mustang&sort=size passes size sort array to es_client.search. [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=mustang&sort=size")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["sort"] == [{"word_count": {"order": "desc"}}]
+
+
+def test_sort_unknown_value_ignored(monkeypatch):
+    """GET /api/search?q=test&sort=inject treats unknown sort as relevance (sort=None). [SORT-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&sort=inject")
+    assert resp.status_code == 200
+    call_kwargs = mock_es.search.call_args.kwargs
+    # sort kwarg should be None (no sort array) when value is not in allowlist
+    assert call_kwargs.get("sort") is None
+
+
+# ---------------------------------------------------------------------------
+# FILT-03: year/country API param forwarding
+# ---------------------------------------------------------------------------
+
+
+def test_year_from_filter_forwarded(monkeypatch):
+    """GET /api/search?year_from=1960 forwards production_end range clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_from=1960")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"range": {"production_end": {"gte": 1960}}} in filters
+
+
+def test_year_to_filter_forwarded(monkeypatch):
+    """GET /api/search?year_to=1975 forwards production_start range clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_to=1975")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"range": {"production_start": {"lte": 1975}}} in filters
+
+
+def test_country_filter_forwarded(monkeypatch):
+    """GET /api/search?country=Germany forwards country_of_origin term clause to ES. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&country=Germany")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    filters = call_kwargs["query"]["function_score"]["query"]["bool"]["filter"]
+    assert {"term": {"country_of_origin": "Germany"}} in filters
+
+
+def test_year_invalid_string_coerced_to_none(monkeypatch):
+    """Non-integer year_from (e.g. 'abc') is coerced to None — no range clause emitted. [FILT-03]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {"took": 3, "hits": {"total": {"value": 0}, "hits": []}}
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=test&year_from=abc")
+    assert resp.status_code == 200
+
+    call_kwargs = mock_es.search.call_args.kwargs
+    query = call_kwargs["query"]
+    # No bool.filter wrapping — inner query is plain multi_match with no production_end clause
+    fs_inner = query["function_score"]["query"]
+    assert "production_end" not in str(fs_inner)
+
+
+# ---------------------------------------------------------------------------
+# PAGE-01 / PAGE-02: Pagination unit tests (RED — implementation in 12-02)
+# ---------------------------------------------------------------------------
+
+
+def test_pagination_default(monkeypatch):
+    """GET /api/search?q=ferrari (no page param) → ES receives from_=0 and size=10. [PAGE-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["from_"] == 0
+    assert call_kwargs["size"] == 10
+
+
+def test_pagination_page_2(monkeypatch):
+    """GET /api/search?q=ferrari&page=2 → ES receives from_=10 and size=10. [PAGE-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=2")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    assert call_kwargs["from_"] == 10   # (2-1) * 10
+    assert call_kwargs["size"] == 10
+
+
+def test_pagination_page_zero(monkeypatch):
+    """GET /api/search?q=ferrari&page=0 → clamped to page 1 → ES receives from_=0; response page==1. [PAGE-01, T-12-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=0")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    # page=0 must be clamped to 1 — from_ must never be negative
+    assert call_kwargs["from_"] == 0
+    # clamped page must be reflected in wrapper response
+    data = resp.get_json()
+    assert data["page"] == 1
+
+
+def test_pagination_invalid_page(monkeypatch):
+    """GET /api/search?q=ferrari&page=abc → non-integer coerced to page 1 → from_=0; response page==1. [PAGE-01, T-12-01]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari&page=abc")
+    assert resp.status_code == 200
+
+    mock_es.search.assert_called_once()
+    call_kwargs = mock_es.search.call_args.kwargs
+    # Non-integer page must default to page 1 — from_ must be 0
+    assert call_kwargs["from_"] == 0
+    # defaulted page must be reflected in wrapper response
+    data = resp.get_json()
+    assert data["page"] == 1
+
+
+def test_pagination_total(monkeypatch):
+    """Response includes 'total' key equal to hits.total.value from ES. [PAGE-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 248}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["total"] == 248
+
+
+def test_pagination_wrapper(monkeypatch):
+    """Response is a dict with keys results/total/took_ms/page; took_ms is at wrapper level, not per-item. [PAGE-02]"""
+    from nitrofind import server
+    mock_es = MagicMock()
+    mock_es.search.return_value = {
+        "took": 3,
+        "hits": {"total": {"value": 25}, "hits": []},
+    }
+    monkeypatch.setitem(server.state, "ready", True)
+    monkeypatch.setitem(server.state, "es_client", mock_es)
+    client = server.app.test_client()
+
+    resp = client.get("/api/search?q=ferrari")
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    # Response must be a dict (not a list)
+    assert isinstance(data, dict)
+    # Must contain all four wrapper keys
+    assert "results" in data
+    assert "total" in data
+    assert "took_ms" in data
+    assert "page" in data
+    # took_ms at wrapper level comes from ES "took"
+    assert data["took_ms"] == 3
+    # No per-item took_ms — took_ms must NOT appear inside any result item
+    for item in data["results"]:
+        assert "took_ms" not in item

@@ -4,17 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NitroFind</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem('nitrofind-theme');
+      document.documentElement.dataset.theme = (t === 'light') ? 'light' : 'dark';
+    }());
+  </script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body data-state="home">
 
   <!-- Home view: centered logo + search box -->
   <div class="home-view">
+    <button id="theme-toggle" type="button" class="theme-toggle-btn">Light</button>
     <h1 class="logo">NitroFind</h1>
     <div class="search-wrap">
       <input id="search-input" type="search" placeholder="Search cars…" autocomplete="off" disabled>
       <p id="status-line">Starting up…</p>
     </div>
+    <ul id="history-list" style="display:none;"></ul>
   </div>
 
   <!-- Results view: top bar + filter row + results list -->
@@ -22,6 +30,7 @@
     <header class="top-bar">
       <span class="logo-small">NitroFind</span>
       <input id="search-input-results" type="search" placeholder="Search cars…" autocomplete="off">
+      <button id="theme-toggle-results" type="button" class="theme-toggle-btn">Light</button>
     </header>
     <div class="filter-row">
       <select id="filter-manufacturer">
@@ -47,9 +56,23 @@
         <option value="SUV">SUV</option>
         <option value="truck">Truck</option>
       </select>
+      <input id="filter-year-from" type="number" placeholder="Year from"
+             min="1900" max="2099" step="1">
+      <input id="filter-year-to"   type="number" placeholder="Year to"
+             min="1900" max="2099" step="1">
+      <input id="filter-country"   type="text"   placeholder="e.g. Germany">
+      <div class="sort-controls">
+        <button type="button" class="sort-btn active" data-sort="relevance">Relevance</button>
+        <button type="button" class="sort-btn" data-sort="date">Newest</button>
+        <button type="button" class="sort-btn" data-sort="size">Largest</button>
+      </div>
     </div>
     <p id="stats-line"></p>
     <div id="results-list"></div>
+    <div class="pagination-row" id="pagination-row">
+      <button type="button" id="prev-btn" disabled>&#8592; Previous</button>
+      <button type="button" id="next-btn">Next &#8594;</button>
+    </div>
   </div>
 
   <!-- Article view: Archive dossier -->

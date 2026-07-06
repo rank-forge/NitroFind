@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Search Quality & UX Polish
 status: executing
-last_updated: "2026-06-17T18:00:05.089Z"
-last_activity: 2026-06-17 -- Phase 09 execution started
+last_updated: "2026-07-06T18:22:09.809Z"
+last_activity: 2026-07-06
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_phases: 5
+  total_plans: 15
+  completed_plans: 15
+  percent: 100
 ---
 
 # Project State
@@ -20,28 +20,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-04)
 
 **Core value:** Instant, noise-free access to deep automotive knowledge — the entire database on your machine, searchable in milliseconds.
-**Current focus:** Phase 09 — article-rendering-fixes
+**Current focus:** Phase 13 — history-theme
 
 ## Current Position
 
-Phase: 09 (article-rendering-fixes) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 09
-Last activity: 2026-06-17 -- Phase 09 execution started
+Phase: 13
+Plan: Not started
+Status: Executing Phase 13
+Last activity: 2026-07-06
 
 ```
-[Phase 9] [Phase 10] [Phase 11] [Phase 12] [Phase 13]
-    ↑
- next up
+[Phase 9 ✓] [Phase 10 ✓] [Phase 11] [Phase 12] [Phase 13]
+                               ↑
+                            next up
 ```
 
-Progress: 0/5 phases complete (0%)
+Progress: [██████████] 100% (Phase 10 complete)
 
 ## Performance Metrics
 
 **Velocity (v1.1):**
 
-- Total plans completed: 7
+- Total plans completed: 15
 - Timeline: 2 days (2026-06-03 → 2026-06-04)
 
 **All-time:**
@@ -61,6 +61,13 @@ Recent decisions from v1.1:
 - Linux/WSL-only for v1.1 — all `sys.platform == 'win32'` branches removed from `es_manager.py`
 - Module-level state dict pattern extended to `es_client` (GIL-safe single writer)
 - `data-state` CSS attribute selectors for SPA view switching — no JS show/hide
+
+Recent decisions from Phase 10 (v1.2):
+
+- Fuzzy search uses `fuzziness: "AUTO"` with `prefix_length: 2` to reduce false positives on short tokens
+- Phrase routing: query wrapped in `match_phrase` when surrounded by double-quotes
+- Sort choice persists across new queries — `currentSort` never reset in `runSearch` (user preference)
+- `sort=` param omitted for relevance (ES default `_score desc`), mirroring empty-filter-strip pattern
 
 ### Pending Todos
 

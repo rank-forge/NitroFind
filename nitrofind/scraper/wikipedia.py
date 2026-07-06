@@ -208,6 +208,7 @@ class WikipediaScraper:
                 )
                 continue
             if doc is None:
+                time.sleep(self._rate_limit)  # respect rate limit even on fetch failure
                 continue
 
             yield doc

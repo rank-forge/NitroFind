@@ -13,13 +13,13 @@
 
 ### Search Quality (QURY)
 
-- [ ] **QURY-01**: User searches with typos ("Ferari", "Lamborgini") and gets correct results — fuzziness: "AUTO" applied to multi_match query
-- [ ] **QURY-02**: User wraps a phrase in quotes ("V8 engine") and gets phrase-match results — query routed automatically to match_phrase
+- [x] **QURY-01**: User searches with typos ("Ferari", "Lamborgini") and gets correct results — fuzziness: "AUTO" applied to multi_match query
+- [x] **QURY-02**: User wraps a phrase in quotes ("V8 engine") and gets phrase-match results — query routed automatically to match_phrase
 
 ### Sort Controls (SORT)
 
-- [ ] **SORT-01**: User can sort results by relevance (default), newest-first (date), or largest-first (size) via toggle buttons in the search UI
-- [ ] **SORT-02**: `GET /api/search` accepts an optional `sort` param (`relevance` | `date` | `size`) and applies the corresponding ES sort order
+- [x] **SORT-01**: User can sort results by relevance (default), newest-first (date), or largest-first (size) via toggle buttons in the search UI
+- [x] **SORT-02**: `GET /api/search` accepts an optional `sort` param (`relevance` | `date` | `size`) and applies the corresponding ES sort order
 
 ### Filtering (FILT)
 
@@ -29,17 +29,17 @@
 
 ### Pagination (PAGE)
 
-- [ ] **PAGE-01**: Result list shows results in pages (default 10 per page) with Previous / Next navigation buttons
-- [ ] **PAGE-02**: Result count below the search box shows total hits across all pages (e.g. "248 results (0.08s)")
+- [x] **PAGE-01**: Result list shows results in pages (default 10 per page) with Previous / Next navigation buttons
+- [x] **PAGE-02**: Result count below the search box shows total hits across all pages (e.g. "248 results (0.08s)")
 
 ### Search History (HIST)
 
-- [ ] **HIST-01**: Last 10 unique search queries are saved to localStorage automatically as the user searches
-- [ ] **HIST-02**: User can view the history list and click an entry to re-execute that query
+- [x] **HIST-01**: Last 10 unique search queries are saved to localStorage automatically as the user searches
+- [x] **HIST-02**: User can view the history list and click an entry to re-execute that query
 
 ### Theme Toggle (THME)
 
-- [ ] **THME-01**: User can toggle between dark and light themes via a button in the header; preference is stored in localStorage and applied on page reload
+- [x] **THME-01**: User can toggle between dark and light themes via a button in the header; preference is stored in localStorage and applied on page reload
 
 ## Future Requirements (v1.3+)
 

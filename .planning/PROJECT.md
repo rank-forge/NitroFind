@@ -42,14 +42,14 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 - [ ] Article rendering: Wikipedia/blog tables not displayed in detail view — v1.2
 - [ ] Article rendering: Body text too large (link text being ingested with article body) — v1.2
-- [ ] Fuzzy search — fuzziness: "AUTO" on multi_match — v1.2
-- [ ] Phrase search — detect quoted queries → route to match_phrase — v1.2
-- [ ] Alternative sort buttons: "By date", "By relevance", "By size" — v1.2
+- ✓ Fuzzy search — fuzziness: "AUTO" on multi_match — v1.2 (Validated in Phase 10: search-quality-sort)
+- ✓ Phrase search — detect quoted queries → route to match_phrase — v1.2 (Validated in Phase 10: search-quality-sort)
+- ✓ Alternative sort buttons: "By date", "By relevance", "By size" — v1.2 (Validated in Phase 10: search-quality-sort)
 - [ ] Year range filter (production_start / production_end) — v1.2
 - [ ] Country of origin filter — v1.2
-- [ ] Pagination (previous / next result pages) — v1.2
-- [ ] Search history (last 10 queries, localStorage) — v1.2
-- [ ] Dark / light mode toggle in header — v1.2
+- ✓ Pagination (previous / next result pages, 10 per page, total hit count) — v1.2 (Validated in Phase 12: pagination)
+- ✓ Search history (last 10 queries, localStorage) — v1.2 (Validated in Phase 13: history-theme)
+- ✓ Dark / light mode toggle in header — v1.2 (Validated in Phase 13: history-theme)
 
 ### Deferred (v1.3+)
 
@@ -87,7 +87,7 @@ Instant, noise-free access to deep automotive knowledge — the entire database 
 
 ## Context
 
-**Current state:** v1.1 shipped 2026-06-04. Browser-based SPA replaced PyQt6 desktop UI. Flask web server on localhost:5000. All v1.1 requirements (16/16) delivered.
+**Current state:** Phase 13 complete 2026-07-06. Search history (HIST-01/02) and dark/light theme toggle (THME-01) delivered — final two v1.2 UX features. v1.1 browser SPA on localhost:5000 remains the distribution model.
 
 - Tech stack: Python 3.11, Elasticsearch 8.18, Flask 3.1.3, BeautifulSoup4, mediawikiapi, vanilla JS
 - ES node: `xpack.security.enabled: false`, `network.host: 127.0.0.1`, JVM heap pinned at 512 MB
@@ -137,4 +137,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-17 — v1.2 milestone started*
+*Last updated: 2026-07-05 — Phase 12 complete: pagination shipped (prev/next, 10 per page, total hit count)*

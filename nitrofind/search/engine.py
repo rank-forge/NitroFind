@@ -102,6 +102,7 @@ class _SearchWorker(QRunnable):
                 source=self._body.get("_source"),
                 size=self._body.get("size", 20),
                 from_=self._body.get("from", 0),
+                sort=self._body.get("sort"),   # SORT-02: None → ES default _score desc
             )
             results = [
                 ArticleResult.from_es_hit(hit)

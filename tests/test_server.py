@@ -209,3 +209,30 @@ def test_article_detail_404_when_missing(monkeypatch):
 
     assert resp.status_code == 404
     assert resp.get_json() == {"error": "article_not_found"}
+
+
+# ---------------------------------------------------------------------------
+# Phase 13: History & Theme DOM structure — HIST-01/02, THME-01 (RED scaffold)
+# ---------------------------------------------------------------------------
+
+
+def test_template_has_history_list(client_not_ready):
+    """GET / rendered HTML contains id="history-list" container (HIST-01/02 DOM structure)."""
+    resp = client_not_ready.get("/")
+    assert resp.status_code == 200
+    assert b'id="history-list"' in resp.data
+
+
+def test_template_has_theme_toggle(client_not_ready):
+    """GET / rendered HTML contains id="theme-toggle" button (THME-01 DOM structure)."""
+    resp = client_not_ready.get("/")
+    assert resp.status_code == 200
+    assert b'id="theme-toggle"' in resp.data
+
+
+def test_template_has_fouc_prevention_script(client_not_ready):
+    """GET / rendered HTML contains inline <script> in <head> for FOUC prevention (THME-01)."""
+    resp = client_not_ready.get("/")
+    assert resp.status_code == 200
+    assert b'nitrofind-theme' in resp.data
+    assert b'dataset.theme' in resp.data

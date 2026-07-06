@@ -8,16 +8,22 @@ Exports:
   start_es_background — Spawn daemon thread that starts ES subprocess and polls cluster health
   index               — GET / route: serves rendered index.html search UI
   api_status          — GET /api/status route: 503 warmup guard / 200 health JSON
-  api_search          — GET /api/search route: ranked full-text search with optional filters
-  _result_to_api_dict — Serialize ArticleResult to the API-01 wire format
+  api_search             — GET /api/search route: ranked full-text search with optional filters and pagination
+  api_article_detail     — GET /api/articles/<article_id> route: full article payload for clicked results
+  _result_to_api_dict    — Serialize ArticleResult to the lightweight per-item wire format (no took_ms)
+  _article_detail_to_api_dict — Serialize ArticleResult to the full detail wire format
 
 Requirement coverage:
   SRVR-02: Flask listens on localhost:5000; PORT overridable via env var
   SRVR-03: HTTP 503 {"status": "starting"} during ES warmup
-  API-01:  GET /api/search returns JSON array with title, url, source_domain, excerpt, score, took_ms
-  API-02:  GET /api/search accepts manufacturer, era_bucket, body_style filter params
+  API-01:  GET /api/search returns JSON wrapper {results, total, took_ms, page} with lightweight
+           per-item keys article_id, title, url, source_domain, excerpt, score
+  API-02:  GET /api/search accepts manufacturer, era_bucket, body_style, year_from, year_to,
+           country filter params
   API-03:  GET /api/status returns JSON with es_health, doc_count, index_size_bytes
   API-04:  GET / serves rendered index.html search UI
+  API-05:  GET /api/articles/<article_id> returns the full article payload (body, body_html,
+           hero_image_url, specs, ...) fetched only after a result is clicked
 
 Security mitigations:
   T-06-05: 503 warmup guard checks state["ready"] before any ES client call
@@ -49,6 +55,11 @@ from nitrofind.search.query_builder import (
 logger = logging.getLogger("nitrofind.server")
 
 _pkg_dir = os.path.dirname(os.path.abspath(__file__))
+
+# SORT-02: allowlist for sort param (T-10-SORT mitigation — unknown values coerced to None)
+_VALID_SORTS: frozenset[str] = frozenset({"relevance", "date", "size"})
+# PAGE-01: number of results per page (matches frontend pageSize constant)
+PAGE_SIZE: int = 10
 app = Flask(
     __name__,
     template_folder=os.path.join(_pkg_dir, "..", "templates"),
@@ -96,7 +107,7 @@ def api_status():
     }, 200
 
 
-def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
+def _result_to_api_dict(result: ArticleResult) -> dict:
     """Serialize one lightweight search result for the result list.
 
     Excerpt selection: use highlight_body[0] if ES returned a highlighted
@@ -104,13 +115,14 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
     This satisfies API-01's requirement that the excerpt contain ES highlight
     tags when a match exists.
 
+    Note: took_ms is not per-item — it lives on the wrapper response (PAGE-02).
+    The wrapper response has keys: results, total, took_ms, page.
+
     Args:
         result:   ArticleResult instance from ArticleResult.from_es_hit().
-        took_ms:  ES response-level took value (ms). Same value for all items
-                  in a single response (Pitfall 5 resolution).
 
     Returns:
-        dict with keys: article_id, title, url, source_domain, excerpt, score, took_ms.
+        dict with keys: article_id, title, url, source_domain, excerpt, score.
     """
     excerpt = result.highlight_body[0] if result.highlight_body else result.excerpt
     return {
@@ -120,7 +132,6 @@ def _result_to_api_dict(result: ArticleResult, took_ms: int) -> dict:
         "source_domain": result.source_domain,
         "excerpt": excerpt,
         "score": result.score,
-        "took_ms": took_ms,
     }
 
 
@@ -149,14 +160,38 @@ def _article_detail_to_api_dict(result: ArticleResult) -> dict:
     }
 
 
+def _safe_int_param(raw: str | None) -> int | None:
+    """Coerce string query param to int, returning None on error.
+
+    Tampering mitigation T-11-02: raw user strings never reach an ES range
+    clause — only validated int values pass through.
+
+    Args:
+        raw: Raw query param string (e.g. "1960"), or None if param absent.
+
+    Returns:
+        int on success; None if raw is falsy or not a valid integer.
+    """
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
 @app.route("/api/search")
 def api_search():
-    """GET /api/search — ranked full-text search with optional filters.
+    """GET /api/search — ranked full-text search with optional filters and pagination.
 
     Requirement coverage:
-      API-01: returns JSON array with title, url, source_domain, excerpt, score, took_ms
-      API-02: accepts manufacturer, era_bucket, body_style filter params
+      API-01: returns JSON wrapper {results, total, took_ms, page} with lightweight
+              per-item keys article_id, title, url, source_domain, excerpt, score
+      API-02: accepts manufacturer, era_bucket, body_style, year_from, year_to, country
+              filter params
       SRVR-03: returns 503 while state["ready"] is False
+      PAGE-01: page param maps to from_ offset (from_ = (page-1) * PAGE_SIZE)
+      PAGE-02: total key exposes hits.total.value for pagination UI
 
     Security mitigations:
       T-07-01: q placed in multi_match.query value only — never interpolated as DSL key
@@ -165,6 +200,8 @@ def api_search():
       T-07-04: size clamped to MAX_RESULT_SIZE by build_search_body()
       T-07-05: blank q guard returns [] before any ES call (prevents multi_match BadRequestError)
       T-07-07: 503 guard runs before any state["es_client"] access
+      T-12-01: page param coerced via _safe_int_param — raw string never reaches ES
+      T-12-02: page=0 clamped to 1 via max(1, ...); very large page yields ES 400 caught by try/except
     """
     if not state["ready"]:
         return {"status": "starting"}, 503
@@ -177,25 +214,44 @@ def api_search():
         manufacturer=request.args.get("manufacturer") or None,
         era_bucket=request.args.get("era_bucket") or None,
         body_style=request.args.get("body_style") or None,
+        year_from=_safe_int_param(request.args.get("year_from")),
+        year_to=_safe_int_param(request.args.get("year_to")),
+        country=request.args.get("country") or None,
     )
-    body = build_search_body(q, filters=filters)
+    # SORT-02: read sort param with allowlist (T-10-SORT mitigation)
+    sort = request.args.get("sort") or None
+    if sort not in _VALID_SORTS:
+        sort = None  # unknown value → treat as relevance (silently coerced)
+
+    # PAGE-01: read page param; non-integer or zero → clamp to 1 (T-12-01, T-12-02)
+    page = max(1, _safe_int_param(request.args.get("page")) or 1)
+    from_value = (page - 1) * PAGE_SIZE
+
+    body = build_search_body(q, filters=filters, sort=sort, size=PAGE_SIZE, from_=from_value)
 
     try:
         resp = state["es_client"].search(
             index="car_articles",
             query=body["query"],
+            sort=body.get("sort"),        # SORT-02: None → ES default _score desc; list → field sort
             highlight=body.get("highlight"),
             source=body.get("_source"),   # 'source' not '_source' — known naming difference (Pitfall 1)
-            size=body.get("size", 20),
+            size=body.get("size", PAGE_SIZE),
             from_=body.get("from", 0),
         )
     except Exception as exc:
         logger.warning("Search error: %s: %s", type(exc).__name__, exc)
-        return {"error": "search_failed", "detail": type(exc).__name__}, 500
+        return {"error": "search_failed"}, 500
 
     took_ms = resp.get("took", 0)
+    total = resp["hits"]["total"]["value"]  # PAGE-02: true hit count across all pages
     results = [ArticleResult.from_es_hit(hit) for hit in resp["hits"]["hits"]]
-    return jsonify([_result_to_api_dict(r, took_ms) for r in results])
+    return jsonify({
+        "results": [_result_to_api_dict(r) for r in results],
+        "total": total,
+        "took_ms": took_ms,
+        "page": page,
+    })
 
 
 @app.route("/api/articles/<article_id>")
@@ -214,7 +270,7 @@ def api_article_detail(article_id: str):
         return {"error": "article_not_found"}, 404
     except Exception as exc:
         logger.warning("Article detail error: %s: %s", type(exc).__name__, exc)
-        return {"error": "article_detail_failed", "detail": type(exc).__name__}, 500
+        return {"error": "article_detail_failed"}, 500
 
     result = ArticleResult.from_es_hit(resp)
     return jsonify(_article_detail_to_api_dict(result))
