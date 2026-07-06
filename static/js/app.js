@@ -31,6 +31,8 @@ let debounceTimer = null;
 let abortController = null;
 
 const DEBOUNCE_MS = 300;
+const TRANSITION_MIN_MS = 750;
+const TRANSITION_MAX_MS = 1250;
 
 // ---------------------------------------------------------------------------
 // Cached DOM references (queried once at load — never inside render loops)
@@ -48,6 +50,13 @@ const backBtn         = document.getElementById("back-btn");
 const articleTitle    = document.getElementById("article-title");
 const articleSource   = document.getElementById("article-source");
 const articleBody     = document.getElementById("article-body");
+const transitionOverlay = document.getElementById("transition-overlay");
+const speedometerVideo  = document.getElementById("speedometer-video");
+const articlePhoto      = document.getElementById("article-photo");
+const articlePhotoPlaceholder = document.getElementById("article-photo-placeholder");
+const articleEra        = document.getElementById("article-era");
+const articleSummary    = document.getElementById("article-summary");
+const articleSpecs      = document.getElementById("article-specs");
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -157,21 +166,123 @@ function renderResults(results) {
 // Article view (SRCH-03, D-05)
 // ---------------------------------------------------------------------------
 
-function openArticle(result) {
-  articleTitle.textContent  = result.title;                          // textContent
-  articleSource.textContent = result.source_domain;                  // textContent
-  const htmlContent = result.body_html || "";
-  if (htmlContent) {
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function playSpeedometerTransition() {
+  transitionOverlay.classList.add("active");
+  speedometerVideo.currentTime = 0;
+
+  const startedAt = performance.now();
+  try {
+    await speedometerVideo.play();
+  } catch (_) {
+    return delay(TRANSITION_MIN_MS);
+  }
+
+  await delay(TRANSITION_MAX_MS);
+  speedometerVideo.pause();
+  const elapsed = performance.now() - startedAt;
+  if (elapsed < TRANSITION_MIN_MS) {
+    await delay(TRANSITION_MIN_MS - elapsed);
+  }
+}
+
+function endSpeedometerTransition() {
+  transitionOverlay.classList.remove("active");
+  speedometerVideo.pause();
+}
+
+async function openArticle(result) {
+  if (!result.article_id) return;
+
+  const transitionPromise = playSpeedometerTransition();
+  let detail = null;
+
+  try {
+    const resp = await fetch(`/api/articles/${encodeURIComponent(result.article_id)}`);
+    if (!resp.ok) throw new Error(`Article detail failed: ${resp.status}`);
+    detail = await resp.json();
+  } catch (err) {
+    console.error("Article detail failed:", err);
+    endSpeedometerTransition();
+    return;
+  }
+
+  await transitionPromise;
+  renderArticle(detail);
+  transitionTo("article");
+  requestAnimationFrame(endSpeedometerTransition);
+}
+
+function appendSpec(label, value) {
+  if (value === null || value === undefined || value === "") return;
+
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const definition = document.createElement("dd");
+  definition.textContent = String(value);
+
+  articleSpecs.appendChild(term);
+  articleSpecs.appendChild(definition);
+}
+
+function productionRange(detail) {
+  if (detail.production_start && detail.production_end) {
+    return `${detail.production_start}-${detail.production_end}`;
+  }
+  if (detail.production_start) return String(detail.production_start);
+  if (detail.production_end) return String(detail.production_end);
+  return "";
+}
+
+function renderArticle(detail) {
+  articleTitle.textContent = detail.title || "";
+  articleSource.textContent = detail.source_domain || "";
+  articleEra.textContent = detail.era_bucket || "";
+  articleSummary.textContent = detail.excerpt || "";
+
+  articleSpecs.innerHTML = "";
+  appendSpec("Maker", detail.manufacturer);
+  appendSpec("Production", productionRange(detail));
+  appendSpec("Body", detail.body_style);
+  appendSpec("Origin", detail.country_of_origin);
+  appendSpec("Words", detail.word_count);
+
+  renderArticleImage(detail);
+
+  if (detail.body_html) {
     // innerHTML is intentional — renders <table>, <h2>, etc. (Phase 9, BUG-01).
     // Matches existing excerpt.innerHTML precedent (D-10). Scraper strips
     // <script>, <style>, and on* event handler attributes before storing.
     // Local single-user offline app — XSS attack surface is near-zero.
-    articleBody.innerHTML = htmlContent;
+    articleBody.innerHTML = detail.body_html;
   } else {
-    // Fallback for articles without body_html (scraped before Phase 9)
-    articleBody.textContent = result.body || "No content available.";
+    articleBody.textContent = detail.body || "No content available.";
   }
-  transitionTo("article");
+}
+
+function renderArticleImage(detail) {
+  articlePhoto.classList.remove("loaded");
+  articlePhoto.removeAttribute("src");
+  articlePhoto.alt = detail.title ? `${detail.title} photo` : "Car photo";
+
+  if (!detail.hero_image_url) {
+    articlePhotoPlaceholder.dataset.state = "missing";
+    return;
+  }
+
+  articlePhotoPlaceholder.dataset.state = "loading";
+  articlePhoto.onload = () => {
+    articlePhotoPlaceholder.dataset.state = "loaded";
+    articlePhoto.classList.add("loaded");
+  };
+  articlePhoto.onerror = () => {
+    articlePhotoPlaceholder.dataset.state = "missing";
+    articlePhoto.classList.remove("loaded");
+  };
+  articlePhoto.src = detail.hero_image_url;
 }
 
 backBtn.addEventListener("click", () => {
