@@ -270,5 +270,5 @@ def build_search_body(
         },
         "size": max(0, min(size, MAX_RESULT_SIZE)),   # T-03-02: clamp to [0, MAX_RESULT_SIZE]
         "from": max(0, from_),                        # clamp to non-negative
-        "_source": SEARCH_SOURCE_FIELDS,
+        "_source": list(SEARCH_SOURCE_FIELDS),
     }

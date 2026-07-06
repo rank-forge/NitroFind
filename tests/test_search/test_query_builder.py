@@ -281,6 +281,15 @@ def test_build_search_body_source_fields():
     assert "hero_image_url" not in body["_source"]
 
 
+def test_build_search_body_source_fields_are_isolated_between_calls():
+    """Mutating one result's _source does not contaminate later calls."""
+    body1 = build_search_body("Ferrari")
+    body1["_source"].append("mutated_field")
+
+    body2 = build_search_body("Ferrari")
+    assert "mutated_field" not in body2["_source"]
+
+
 def test_detail_source_fields_include_article_payload():
     """DETAIL_SOURCE_FIELDS contains full article fields for the click-through endpoint."""
     assert DETAIL_SOURCE_FIELDS == [
