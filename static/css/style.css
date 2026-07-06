@@ -28,6 +28,19 @@
   --transition: 200ms ease;
 }
 
+/* Light theme token override — same names, different values.
+   Scoped to html[data-theme="light"] so body[data-state] selectors are untouched. */
+html[data-theme="light"] {
+  --bg-primary:     #ffffff;
+  --bg-surface:     #f6f8fa;
+  --bg-input:       #ffffff;
+  --text-primary:   #1c2128;
+  --text-secondary: #57606a;
+  --accent:         #0d9488;   /* teal-600 — 4.6:1 on #fff (WCAG AA) */
+  --accent-hover:   #0f766e;   /* teal-700 */
+  --border:         #d0d7de;
+}
+
 /* ---------------------------------------------------------
    2. Base / Reset
    --------------------------------------------------------- */
@@ -398,5 +411,60 @@ body[data-state="article"] .article-view { display: block; }
 
 #article-body th {
   text-align: left;
+  background-color: var(--bg-surface);
+}
+
+/* ---------------------------------------------------------
+   8. Theme toggle button (Phase 13, THME-01)
+   --------------------------------------------------------- */
+
+/* Theme toggle button — shares sort-btn visual language */
+.theme-toggle-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.theme-toggle-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Home-view toggle — absolute position so visible without results bar */
+.home-view .theme-toggle-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 1.5rem;
+}
+
+/* ---------------------------------------------------------
+   9. History list — home-view recent searches (Phase 13, HIST-01/02)
+   --------------------------------------------------------- */
+
+/* History list — home-view recent searches */
+#history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 580px;  /* matches .search-wrap max-width */
+}
+
+.history-item {
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: color var(--transition), background-color var(--transition);
+}
+
+.history-item:hover {
+  color: var(--accent);
   background-color: var(--bg-surface);
 }
