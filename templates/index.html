@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-intro="active">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +8,24 @@
     (function () {
       var t = localStorage.getItem('nitrofind-theme');
       document.documentElement.dataset.theme = (t === 'light') ? 'light' : 'dark';
+      document.documentElement.dataset.intro = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'done' : 'active';
     }());
   </script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body data-state="home">
+
+  <!-- Scrollytelling intro: instant poster -> scroll-scrubbed video -> veil reveal of .home-view -->
+  <div class="intro-scroller" aria-hidden="true">
+    <div class="intro-stage">
+      <img class="intro-poster" id="intro-poster" src="/static/media/carro-poster.webp" alt="">
+      <video id="intro-video" class="intro-video" muted playsinline preload="auto">
+        <source src="/static/media/carro-scroll.mp4" type="video/mp4">
+      </video>
+      <div class="intro-veil"></div>
+      <div class="intro-hint">Role para explorar<span class="intro-hint-arrow"></span></div>
+    </div>
+  </div>
 
   <!-- Home view: centered logo + search box -->
   <div class="home-view">
@@ -105,6 +118,7 @@
     </video>
   </div>
 
+  <script src="/static/js/intro.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>
