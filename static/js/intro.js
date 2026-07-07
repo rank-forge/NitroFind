@@ -252,9 +252,11 @@
 
     document.documentElement.dataset.intro = "done";
 
-    homeView.style.opacity = "";
-    homeView.style.transform = "";
-    homeView.style.pointerEvents = "";
+    if (homeView) {
+      homeView.style.opacity = "";
+      homeView.style.transform = "";
+      homeView.style.pointerEvents = "";
+    }
 
     stopLoop();
 
