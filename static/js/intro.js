@@ -166,8 +166,10 @@
     var x = parallaxCurrentX * PARALLAX_RANGE;
     var y = parallaxCurrentY * PARALLAX_RANGE;
     var rotate = parallaxCurrentX * 0.6; // tiny tilt, degrees
+    // scale(1.04) matches the .intro-stage CSS baseline — slack so the
+    // translate/rotate never exposes the stage background at the edges
     stage.style.transform =
-      "translate3d(" + x.toFixed(2) + "px, " + y.toFixed(2) + "px, 0) rotate(" + rotate.toFixed(2) + "deg)";
+      "translate3d(" + x.toFixed(2) + "px, " + y.toFixed(2) + "px, 0) rotate(" + rotate.toFixed(2) + "deg) scale(1.04)";
   }
 
   function applyVideoTime(progress) {

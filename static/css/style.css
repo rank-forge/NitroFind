@@ -921,6 +921,9 @@ body[data-state="article"] .intro-scroller {
   background: #ffffff;
   z-index: 1;
   will-change: transform;
+  /* folga para o parallax (translate/rotate) não expor o fundo do palco;
+     o JS mantém o mesmo scale no transform que aplica a cada frame */
+  transform: scale(1.04);
 }
 
 .intro-poster,
@@ -929,7 +932,9 @@ body[data-state="article"] .intro-scroller {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* cover: full-bleed, sem faixas do palco nas bordas (o backdrop do vídeo
+     não é branco puro, então "contain" deixava barras visíveis) */
+  object-fit: cover;
 }
 
 .intro-video {
