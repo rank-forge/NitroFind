@@ -61,6 +61,16 @@ def build_action(doc: dict) -> dict:
     return action
 
 
+def _bulk_item_id(info: dict) -> str | None:
+    """Return the Elasticsearch document id from a streaming_bulk item response."""
+    if not isinstance(info, dict):
+        return None
+    for item in info.values():
+        if isinstance(item, dict) and item.get("_id"):
+            return str(item["_id"])
+    return None
+
+
 # ---------------------------------------------------------------------------
 # BulkIndexer class (SCRP-03, SCRP-04, Pattern 3)
 # ---------------------------------------------------------------------------
@@ -128,6 +138,9 @@ class BulkIndexer:
                     continue
 
                 doc_count += 1
+                doc_id = _bulk_item_id(info)
+                if doc_id and self._state is not None:
+                    self._state.mark_visited(doc_id, "car_articles")
                 if doc_count % CHECK_EVERY_N_DOCS == 0:
                     size = self._index_size_bytes()
                     logger.info(

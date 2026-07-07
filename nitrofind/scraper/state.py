@@ -97,6 +97,15 @@ class SQLiteStateManager:
         )
         self._conn.commit()
 
+    def clear(self) -> None:
+        """Remove all visited rows.
+
+        Used by --recreate because rebuilding the Elasticsearch index invalidates
+        the resume state from previous indexing runs.
+        """
+        self._conn.execute("DELETE FROM visited")
+        self._conn.commit()
+
     def close(self) -> None:
         """Close the underlying SQLite connection."""
         self._conn.close()

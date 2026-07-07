@@ -47,6 +47,19 @@ def test_mark_visited_idempotent():
     state.close()
 
 
+def test_clear_removes_all_visited_rows():
+    """clear() resets resume state for --recreate runs."""
+    state = SQLiteStateManager(":memory:")
+    state.mark_visited("page_123", "wikipedia")
+    state.mark_visited("page_456", "wikipedia")
+
+    state.clear()
+
+    assert state.is_visited("page_123") is False
+    assert state.is_visited("page_456") is False
+    state.close()
+
+
 def test_visited_persists_across_close_reopen(tmp_path, monkeypatch):
     """D-06: visited state persists when DB is closed and reopened from same path.
 

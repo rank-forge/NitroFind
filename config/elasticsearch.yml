@@ -8,3 +8,8 @@ discovery.type: single-node
 xpack.security.enabled: false
 xpack.security.http.ssl.enabled: false
 xpack.security.transport.ssl.enabled: false
+# Local desktop tool with a 2 GB index cap: prefer absolute free-space watermarks
+# so shard allocation is not blocked just because the home partition is >90% used.
+cluster.routing.allocation.disk.watermark.low: 10gb
+cluster.routing.allocation.disk.watermark.high: 5gb
+cluster.routing.allocation.disk.watermark.flood_stage: 2gb
