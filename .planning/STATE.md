@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-04)
 Phase: 13
 Plan: Not started
 Status: Executing Phase 13
-Last activity: 2026-07-06
+Last activity: 2026-07-07 - Completed quick task 260707-4g2: scrollytelling intro na home (poster webp + scroll-scrub video + transição para busca)
 
 ```
 [Phase 9 ✓] [Phase 10 ✓] [Phase 11] [Phase 12] [Phase 13]
@@ -83,6 +83,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260513-qjd | commit review fixes from 01-REVIEW.md — resolve all 12 findings (4 critical, 5 warning, 3 info) | 2026-05-13 | a5f8dce | [260513-qjd-commit-review-fixes-from-01-review-md-re](.planning/quick/260513-qjd-commit-review-fixes-from-01-review-md-re/) |
+| 260707-4g2 | Scrollytelling intro na home: poster webp instantâneo, vídeo scroll-scrub do carro desmontando/remontando, transição branco→preto para a barra de pesquisa, parallax do mouse | 2026-07-07 | ec5b6e6 | [260707-4g2-scrollytelling-intro-na-home-poster-webp](./quick/260707-4g2-scrollytelling-intro-na-home-poster-webp/) |
 
 ## Deferred Items
 
