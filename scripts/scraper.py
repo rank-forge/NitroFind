@@ -41,6 +41,8 @@ logger = logging.getLogger("nitrofind.scraper.cli")
 
 DEFAULT_CONFIG_PATH = "config/scraper.yaml"
 STATE_DB_PATH = "data/scraper_state.db"
+ES_REACHABILITY_TIMEOUT_SECONDS = 5
+ES_OPERATION_TIMEOUT_SECONDS = 60
 
 
 # ---------------------------------------------------------------------------
@@ -77,11 +79,12 @@ def _create_client() -> Elasticsearch:
     """Create Elasticsearch client and validate reachability via client.info().
 
     Exits 1 if ES is unreachable, logging the exception type and message.
-    Uses request_timeout=5 (T-02-21 DoS mitigation).
+    Uses a short timeout for the reachability probe (T-02-21 DoS mitigation),
+    while leaving index creation and bulk indexing enough time on cold ES nodes.
     """
-    client = Elasticsearch(ES_URL, request_timeout=5)
+    client = Elasticsearch(ES_URL, request_timeout=ES_OPERATION_TIMEOUT_SECONDS)
     try:
-        client.info()
+        client.options(request_timeout=ES_REACHABILITY_TIMEOUT_SECONDS).info()
     except Exception as exc:
         sys.stderr.write(
             f"Cannot reach Elasticsearch at {ES_URL}: {type(exc).__name__}: {exc}\n"
@@ -187,6 +190,11 @@ def main(argv: list[str] | None = None) -> int:
 
         total = 0
         with SQLiteStateManager(STATE_DB_PATH) as state:
+            if args.recreate:
+                logger.warning(
+                    "Clearing scraper resume state because --recreate was requested"
+                )
+                state.clear()
             if args.wikipedia or args.all_sources:
                 total += _run_wikipedia(config, state, client)
             if args.blogs or args.all_sources:

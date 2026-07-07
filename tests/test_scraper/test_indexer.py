@@ -14,7 +14,7 @@ Anti-patterns avoided:
 """
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -139,6 +139,40 @@ def test_index_all_counts_successful_docs():
         count = indexer.index_all(iter(fake_actions))
 
     assert count == 100
+
+
+def test_index_all_marks_only_successful_bulk_items_visited():
+    """Resume state is updated only after Elasticsearch confirms an item was indexed."""
+    mock_client = MagicMock()
+    mock_client.indices.stats.return_value = {
+        "indices": {
+            "car_articles": {
+                "primaries": {"store": {"size_in_bytes": 100_000_000}},
+                "total": {"store": {"size_in_bytes": 200_000_000}},
+            }
+        }
+    }
+    mock_state = MagicMock()
+    mock_bulk_results = iter([
+        (True, {"index": {"_id": "doc-1"}}),
+        (False, {"index": {"_id": "doc-2", "error": {"type": "unavailable_shards_exception"}}}),
+        (True, {"index": {"_id": "doc-3"}}),
+    ])
+    fake_actions = [
+        {"_index": "car_articles", "_id": "doc-1"},
+        {"_index": "car_articles", "_id": "doc-2"},
+        {"_index": "car_articles", "_id": "doc-3"},
+    ]
+
+    with patch("nitrofind.scraper.indexer.streaming_bulk", return_value=mock_bulk_results):
+        indexer = BulkIndexer(client=mock_client, state=mock_state)
+        count = indexer.index_all(iter(fake_actions))
+
+    assert count == 2
+    assert mock_state.mark_visited.call_args_list == [
+        call("doc-1", "car_articles"),
+        call("doc-3", "car_articles"),
+    ]
 
 
 # ---------------------------------------------------------------------------

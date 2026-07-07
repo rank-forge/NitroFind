@@ -197,13 +197,35 @@ def test_create_client_exits_on_unreachable_es():
     """T-02-21: _create_client exits 1 when ES .info() raises ConnectionError."""
     with patch("scripts.scraper.Elasticsearch") as MockES:
         mock_instance = MagicMock()
-        mock_instance.info.side_effect = ConnectionError("Connection refused")
+        mock_instance.options.return_value.info.side_effect = ConnectionError(
+            "Connection refused"
+        )
         MockES.return_value = mock_instance
 
         with pytest.raises(SystemExit) as exc_info:
             cli._create_client()
 
     assert exc_info.value.code == 1
+
+
+def test_create_client_keeps_reachability_timeout_short_but_scraper_ops_long():
+    """Reachability should fail fast, while index creation/bulk ops get more time."""
+    with patch("scripts.scraper.Elasticsearch") as MockES:
+        mock_instance = MagicMock()
+        reachability_client = mock_instance.options.return_value
+        MockES.return_value = mock_instance
+
+        client = cli._create_client()
+
+    MockES.assert_called_once_with(
+        cli.ES_URL,
+        request_timeout=cli.ES_OPERATION_TIMEOUT_SECONDS,
+    )
+    mock_instance.options.assert_called_once_with(
+        request_timeout=cli.ES_REACHABILITY_TIMEOUT_SECONDS
+    )
+    reachability_client.info.assert_called_once_with()
+    assert client is mock_instance
 
 
 # ---------------------------------------------------------------------------
@@ -343,3 +365,33 @@ def test_main_calls_ensure_index_before_scrape(tmp_config):
     assert call_order.index("ensure_index") < call_order.index("run_wikipedia"), (
         "ensure_index must be called before _run_wikipedia"
     )
+
+
+def test_recreate_clears_scraper_state_before_scrape(tmp_config):
+    """--recreate rebuilds the ES index and resets resume state before scraping."""
+    docs = _fake_docs(1)
+    mock_client = _make_mock_es()
+    mock_state = MagicMock()
+    mock_state.__enter__.return_value = mock_state
+    mock_state.__exit__.return_value = None
+    bulk_results = iter([(True, {"index": {"_id": docs[0]["article_id"]}})])
+
+    with patch("scripts.scraper.Elasticsearch", return_value=mock_client), \
+         patch("scripts.scraper.ensure_index"), \
+         patch("scripts.scraper.SQLiteStateManager", return_value=mock_state), \
+         patch("scripts.scraper.WikipediaScraper") as MockWiki, \
+         patch("scripts.scraper.BlogScraper") as MockBlog, \
+         patch("nitrofind.scraper.indexer.streaming_bulk", return_value=bulk_results):
+
+        MockWiki.return_value.yield_documents.return_value = iter(docs)
+        MockBlog.return_value.yield_documents.return_value = iter([])
+
+        result = cli.main(["--wikipedia", "--recreate", "--config", tmp_config])
+
+    assert result == 0
+    mock_client.indices.delete.assert_called_once_with(
+        index=cli.INDEX_NAME,
+        ignore_unavailable=True,
+    )
+    mock_state.clear.assert_called_once_with()
+    MockWiki.assert_called_once()
