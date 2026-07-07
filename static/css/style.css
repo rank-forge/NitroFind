@@ -892,3 +892,99 @@ body[data-state="article"] .article-view { display: block; }
   color: var(--accent);
   background-color: var(--bg-surface);
 }
+
+/* ---------------------------------------------------------
+   12. Scrollytelling intro
+   --------------------------------------------------------- */
+
+/* Safe default: JS-off / done / reduced-motion fall back to the static home */
+.intro-scroller {
+  display: none;
+}
+
+html[data-intro="active"] .intro-scroller {
+  display: block;
+  height: 500vh;
+}
+
+/* Hard-hide the intro off the home state, regardless of data-intro */
+body[data-state="results"] .intro-scroller,
+body[data-state="article"] .intro-scroller {
+  display: none;
+}
+
+.intro-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+  z-index: 1;
+  will-change: transform;
+  /* folga para o parallax (translate/rotate) não expor o fundo do palco;
+     o JS mantém o mesmo scale no transform que aplica a cada frame */
+  transform: scale(1.04);
+}
+
+.intro-poster,
+.intro-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* cover: full-bleed, sem faixas do palco nas bordas (o backdrop do vídeo
+     não é branco puro, então "contain" deixava barras visíveis) */
+  object-fit: cover;
+}
+
+.intro-video {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.intro-video.ready {
+  opacity: 1;
+}
+
+.intro-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--bg-primary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 2.5rem;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #57606a;
+  font-size: 0.85rem;
+  transition: opacity 300ms ease;
+}
+
+.intro-hint-arrow {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* Promote the existing home view to a centered overlay while the intro is active;
+   JS drives opacity/transform inline and clears them at finishIntro(). */
+html[data-intro="active"] .home-view {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
